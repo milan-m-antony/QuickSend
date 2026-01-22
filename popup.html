@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuickSend</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="popup.css">
+</head>
+
+<body>
+    <div class="bg-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+    </div>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <img src="icons/icon128.png" alt="QuickSend">
+                <h1>QuickSend</h1>
+            </div>
+            <div class="header-right">
+                <button id="info-toggle" class="info-btn" title="How to use">i</button>
+                <div class="status-badge" id="connection-status">Disconnected</div>
+            </div>
+        </header>
+
+        <main id="main-view">
+            <!-- Mode Selection -->
+            <div id="mode-selection" class="view active">
+                <button id="btn-send-mode" class="card-btn">
+                    <div class="icon">📤</div>
+                    <div class="text">
+                        <h3>Send File</h3>
+                        <p>Generate a code to send</p>
+                    </div>
+                </button>
+                <button id="btn-receive-mode" class="card-btn">
+                    <div class="icon">📥</div>
+                    <div class="text">
+                        <h3>Receive File</h3>
+                        <p>Enter code to receive</p>
+                    </div>
+                </button>
+            </div>
+
+            <!-- Sender View -->
+            <div id="sender-view" class="view hidden">
+                <div class="step">
+                    <label for="file-input" class="file-drop-area" id="drop-area">
+                        <span class="file-icon">📄</span>
+                        <span id="file-name-display">Click to select a file</span>
+                        <input type="file" id="file-input" hidden>
+                    </label>
+                </div>
+
+                <div id="code-display-area" class="hidden">
+                    <p>Share this code:</p>
+                    <div class="code-box">
+                        <span id="session-code">...</span>
+                        <button id="btn-copy" class="copy-btn hidden" title="Copy Code">Copy</button>
+                    </div>
+                    <div id="qrcode-container" class="hidden">
+                        <div id="qrcode"></div>
+                        <p class="qr-hint">Scan with another device to connect</p>
+                    </div>
+                    <p class="hint">Waiting for receiver...</p>
+                </div>
+
+                <button id="btn-cancel-send" class="secondary-btn">Cancel</button>
+            </div>
+
+            <!-- Receiver View -->
+            <div id="receiver-view" class="view hidden">
+                <div class="input-group">
+                    <label>Enter 6-digit Code</label>
+                    <input type="text" id="code-input" placeholder="123456" maxlength="6" pattern="\d*">
+                </div>
+                <button id="btn-connect" class="primary-btn">Connect & Download</button>
+                <button id="btn-cancel-receive" class="secondary-btn">Back</button>
+            </div>
+
+            <!-- Transfer View -->
+            <div id="transfer-view" class="view hidden">
+                <div class="transfer-info">
+                    <h2 id="transfer-title">Transferring...</h2>
+                    <p id="transfer-filename">file.txt</p>
+                </div>
+
+                <div class="progress-container">
+                    <div class="progress-bar" id="progress-bar"></div>
+                </div>
+
+                <div class="stats">
+                    <span id="transfer-percentage">0%</span>
+                    <span id="transfer-speed"></span>
+                </div>
+
+                <div id="received-files-container" class="received-files-container"></div>
+
+                <div class="transfer-actions">
+                    <button id="btn-send-more" class="primary-btn">Send a File</button>
+                    <button id="btn-finish" class="secondary-btn">Exit</button>
+                </div>
+
+                <!-- Chat Drawer -->
+                <div id="chat-drawer" class="chat-drawer">
+                    <div class="chat-header" id="chat-toggle">
+                        <span>Chat</span>
+                        <span id="chat-unread" class="unread-dot hidden"></span>
+                    </div>
+                    <div class="chat-body">
+                        <div id="chat-messages" class="chat-messages"></div>
+                        <div class="chat-input-area">
+                            <input type="text" id="chat-input" placeholder="Type a message...">
+                            <button id="btn-send-chat">🚀</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <div id="notification" class="notification hidden"></div>
+
+        <div id="info-overlay" class="info-overlay hidden">
+            <div class="info-content">
+                <button id="info-close" class="close-btn">&times;</button>
+                <h2>How to Use QuickSend</h2>
+                <ul>
+                    <li><strong>Send:</strong> Select a file to generate a 6-digit code or QR.</li>
+                    <li><strong>Receive:</strong> Enter the code on another device to start.</li>
+                    <li><strong>Transfer:</strong> Files move P2P directly between browsers.</li>
+                    <li><strong>Privacy:</strong> No files touch our servers. Safe & Fast.</li>
+                </ul>
+                <p class="info-note">Keep both windows open during transfer.</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="libs/qrcode.js"></script>
+    <script src="libs/supabase.js"></script>
+    <script src="config.js"></script>
+    <script src="popup.js"></script>
+</body>
+
+</html>

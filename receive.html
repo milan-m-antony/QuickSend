@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>QuickSend - Receive File</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0c0e14;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent: #00f2ff;
+            --accent-purple: #a855f7;
+            --accent-glow: rgba(0, 242, 255, 0.4);
+            --success: #10b981;
+            --error: #ef4444;
+            --glass-bg: rgba(13, 17, 28, 0.85);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --radius-xl: 32px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: var(--bg-color);
+            color: var(--text-primary);
+            font-family: 'Outfit', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Animated Background Blobs */
+        .bg-blobs {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.4;
+            animation: float 15s infinite ease-in-out;
+        }
+
+        .blob-1 {
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, var(--accent), #0077ff);
+            top: -5%;
+            left: -10%;
+        }
+
+        .blob-2 {
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, var(--accent-purple), #7e22ce);
+            bottom: -5%;
+            right: -10%;
+            animation-delay: -5s;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            33% {
+                transform: translate(30px, -50px) scale(1.1);
+            }
+
+            66% {
+                transform: translate(-20px, 20px) scale(0.9);
+            }
+        }
+
+        .container {
+            width: 90%;
+            max-width: 400px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-xl);
+            padding: 40px 24px;
+            text-align: center;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: slideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(40px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 30px;
+        }
+
+        .logo img {
+            width: 48px;
+            height: 48px;
+            filter: drop-shadow(0 0 10px var(--accent-glow));
+        }
+
+        .logo h1 {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent), var(--accent-purple));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status-container {
+            margin-bottom: 40px;
+        }
+
+        #status-text {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        #filename {
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-weight: 400;
+            word-break: break-all;
+        }
+
+        .progress-wrapper {
+            background: rgba(255, 255, 255, 0.05);
+            height: 12px;
+            border-radius: 99px;
+            overflow: hidden;
+            margin: 20px 0;
+            border: 1px solid var(--glass-border);
+        }
+
+        #progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(to right, var(--accent), var(--accent-purple));
+            box-shadow: 0 0 15px var(--accent-glow);
+            transition: width 0.3s ease;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: bwtween;
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .primary-btn {
+            display: block;
+            width: 100%;
+            padding: 18px;
+            border-radius: 16px;
+            border: none;
+            background: linear-gradient(135deg, var(--accent), var(--accent-purple));
+            color: #0c0e14;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            margin-top: 20px;
+            box-shadow: 0 10px 20px -5px rgba(0, 242, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .primary-btn.hidden {
+            display: none;
+        }
+
+        .error-message {
+            color: var(--error);
+            font-size: 14px;
+            background: rgba(239, 68, 68, 0.1);
+            padding: 12px;
+            border-radius: 12px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        /* Success Animation */
+        .success-icon {
+            font-size: 60px;
+            color: var(--success);
+            margin-bottom: 20px;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+    </div>
+
+    <div class="container">
+        <div class="logo">
+            <img src="icons/icon128.png" alt="QuickSend">
+            <h1>QuickSend</h1>
+        </div>
+
+        <div class="status-container">
+            <div id="status-text">Connecting...</div>
+            <div id="filename">Getting file info</div>
+        </div>
+
+        <div id="transfer-ui" style="display: none;">
+            <div class="progress-wrapper">
+                <div id="progress-bar"></div>
+            </div>
+            <div class="stats">
+                <span id="percent">0%</span>
+                <span id="speed" style="margin-left: auto;">0 MB/s</span>
+            </div>
+        </div>
+
+        <div id="success-ui" style="display: none;">
+            <div class="success-icon">✓</div>
+            <h3 style="margin-bottom: 10px;">Transfer Complete!</h3>
+            <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 24px;">Your file has been saved to
+                the browser's downloads folder.</p>
+        </div>
+
+        <div id="error-ui" class="error-message"></div>
+
+        <p id="hint" style="font-size: 13px; color: var(--text-secondary); margin-top: 20px;">Keep this page open until
+            the transfer finishes.</p>
+    </div>
+
+    <!-- Required Libs -->
+    <script src="libs/supabase.js"></script>
+    <script src="config.js"></script>
+
+    <script>
+        // --- P2P Logic for Mobile Web ---
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+
+        const statusText = document.getElementById('status-text');
+        const filenameText = document.getElementById('filename');
+        const transferUI = document.getElementById('transfer-ui');
+        const progressBar = document.getElementById('progress-bar');
+        const percentText = document.getElementById('percent');
+        const speedText = document.getElementById('speed');
+        const successUI = document.getElementById('success-ui');
+        const errorUI = document.getElementById('error-ui');
+        const hint = document.getElementById('hint');
+
+        if (!code) {
+            showError("No connection code found. Please scan the QR code again.");
+        } else {
+            initReceiver();
+        }
+
+        function showError(msg) {
+            errorUI.textContent = msg;
+            errorUI.style.display = 'block';
+            statusText.textContent = "Error";
+            statusText.style.color = 'var(--error)';
+        }
+
+        let peerConnection;
+        let dataChannel;
+        let fileName = '';
+        let fileSize = 0;
+        let receivedBytes = 0;
+        let receivedChunks = [];
+        let startTime = 0;
+
+        const supabase = window.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        async function initReceiver() {
+            try {
+                // 1. Fetch Offer from Supabase
+                const { data: session, error } = await supabase
+                    .from('sessions')
+                    .select('*')
+                    .eq('code', code)
+                    .single();
+
+                if (error || !session) {
+                    showError("Session not found or expired.");
+                    return;
+                }
+
+                // 2. Setup WebRTC
+                peerConnection = new RTCPeerConnection({
+                    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+                });
+
+                peerConnection.ondatachannel = (e) => {
+                    dataChannel = e.channel;
+                    setupDataChannel();
+                };
+
+                peerConnection.onicecandidate = (e) => {
+                    if (e.candidate) {
+                        updateIceCandidates('receiver_ice', e.candidate);
+                    }
+                };
+
+                // 3. Handle Offer
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(session.offer));
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+
+                // 4. Send Answer to Supabase
+                await supabase.from('sessions').update({ answer }).eq('code', code);
+
+                // 5. Listen for ICE candidates
+                listenForIce();
+
+            } catch (err) {
+                console.error(err);
+                showError("Connection failed. Ensure you have internet access.");
+            }
+        }
+
+        function setupDataChannel() {
+            dataChannel.onopen = () => {
+                statusText.textContent = "Connected!";
+                transferUI.style.display = 'block';
+                startTime = Date.now();
+            };
+
+            dataChannel.onmessage = (event) => {
+                if (typeof event.data === 'string') {
+                    const msg = JSON.parse(event.data);
+                    if (msg.type === 'meta') {
+                        fileName = msg.name;
+                        fileSize = msg.size;
+                        filenameText.textContent = fileName;
+                        statusText.textContent = "Receiving...";
+                        receivedBytes = 0;
+                    }
+                } else {
+                    receivedChunks.push(event.data);
+                    receivedBytes += event.data.byteLength;
+                    updateProgress();
+
+                    if (receivedBytes >= fileSize) {
+                        completeTransfer();
+                    }
+                }
+            };
+        }
+
+        function updateProgress() {
+            const percent = Math.floor((receivedBytes / fileSize) * 100);
+            progressBar.style.width = percent + '%';
+            percentText.textContent = percent + '%';
+
+            const elapsed = (Date.now() - startTime) / 1000;
+            if (elapsed > 0) {
+                const speed = (receivedBytes / 1024 / 1024) / elapsed;
+                speedText.textContent = speed.toFixed(1) + " MB/s";
+            }
+        }
+
+        function completeTransfer() {
+            const blob = new Blob(receivedChunks);
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            a.click();
+
+            transferUI.style.display = 'none';
+            statusText.style.display = 'none';
+            filenameText.style.display = 'none';
+            hint.style.display = 'none';
+            successUI.style.display = 'block';
+            document.querySelector('.success-icon').style.display = 'block';
+        }
+
+        async function updateIceCandidates(field, candidate) {
+            const { data } = await supabase.from('sessions').select(field).eq('code', code).single();
+            const candidates = data[field] || [];
+            candidates.push(candidate);
+            await supabase.from('sessions').update({ [field]: candidates }).eq('code', code);
+        }
+
+        function listenForIce() {
+            supabase.channel('ice_receiver')
+                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sessions', filter: `code=eq.${code}` }, payload => {
+                    const candidates = payload.new.sender_ice || [];
+                    candidates.forEach(c => {
+                        if (peerConnection.remoteDescription) {
+                            peerConnection.addIceCandidate(new RTCIceCandidate(c));
+                        }
+                    });
+                })
+                .subscribe();
+        }
+    </script>
+</body>
+
+</html>

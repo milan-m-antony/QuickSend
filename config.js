@@ -1,0 +1,4 @@
+const SUPABASE_URL = 'https://xmskswrqunrsqsffegkr.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhtc2tzd3JxdW5yc3FzZmZlZ2tyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwMTExNjYsImV4cCI6MjA4NDU4NzE2Nn0.A3PMPhemLzJDxbUq8hB4Oye_u5Bo4Dzo7DbRDYIqEGg';
+
+
