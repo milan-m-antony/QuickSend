@@ -318,7 +318,7 @@ async function startSenderSession() {
 
     // For local testing, QR will just contain the 6-digit code.
     // Replace 'YOUR_HOSTED_URL' below with your real domain (e.g. quicksend.vercel.app)
-    const host = 'YOUR_HOSTED_URL';
+    const host = 'quick-send-iota.vercel.app';
     const qrData = (host === 'YOUR_HOSTED_URL') ? code : `https://${host}/receive.html?code=${code}`;
 
     new QRCode(ui.qrcode, {
