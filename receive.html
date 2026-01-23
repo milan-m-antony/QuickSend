@@ -272,166 +272,179 @@
     <script src="config.js"></script>
 
     <script>
-        // --- P2P Logic for Mobile Web ---
-        const urlParams = new URLSearchParams(window.location.search);
-        const code = urlParams.get('code');
+        // Wait for all scripts to load before initializing
+        window.addEventListener('load', function() {
+            // --- P2P Logic for Mobile Web ---
+            const urlParams = new URLSearchParams(window.location.search);
+            const code = urlParams.get('code');
 
-        const statusText = document.getElementById('status-text');
-        const filenameText = document.getElementById('filename');
-        const transferUI = document.getElementById('transfer-ui');
-        const progressBar = document.getElementById('progress-bar');
-        const percentText = document.getElementById('percent');
-        const speedText = document.getElementById('speed');
-        const successUI = document.getElementById('success-ui');
-        const errorUI = document.getElementById('error-ui');
-        const hint = document.getElementById('hint');
+            const statusText = document.getElementById('status-text');
+            const filenameText = document.getElementById('filename');
+            const transferUI = document.getElementById('transfer-ui');
+            const progressBar = document.getElementById('progress-bar');
+            const percentText = document.getElementById('percent');
+            const speedText = document.getElementById('speed');
+            const successUI = document.getElementById('success-ui');
+            const errorUI = document.getElementById('error-ui');
+            const hint = document.getElementById('hint');
 
-        if (!code) {
-            showError("No connection code found. Please scan the QR code again.");
-        } else {
-            initReceiver();
-        }
+            if (!code) {
+                showError("No connection code found. Please scan the QR code again.");
+                return;
+            }
 
-        function showError(msg) {
-            errorUI.textContent = msg;
-            errorUI.style.display = 'block';
-            statusText.textContent = "Error";
-            statusText.style.color = 'var(--error)';
-        }
+            function showError(msg) {
+                errorUI.textContent = msg;
+                errorUI.style.display = 'block';
+                statusText.textContent = "Error";
+                statusText.style.color = 'var(--error)';
+            }
 
-        let peerConnection;
-        let dataChannel;
-        let fileName = '';
-        let fileSize = 0;
-        let receivedBytes = 0;
-        let receivedChunks = [];
-        let startTime = 0;
+            let peerConnection;
+            let dataChannel;
+            let fileName = '';
+            let fileSize = 0;
+            let receivedBytes = 0;
+            let receivedChunks = [];
+            let startTime = 0;
 
-        const supabase = window.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-        async function initReceiver() {
+            // Initialize Supabase client
+            let supabase;
             try {
-                // 1. Fetch Offer from Supabase
-                const { data: session, error } = await supabase
-                    .from('sessions')
-                    .select('*')
-                    .eq('code', code)
-                    .single();
-
-                if (error || !session) {
-                    showError("Session not found or expired.");
-                    return;
-                }
-
-                // 2. Setup WebRTC
-                peerConnection = new RTCPeerConnection({
-                    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-                });
-
-                peerConnection.ondatachannel = (e) => {
-                    dataChannel = e.channel;
-                    setupDataChannel();
-                };
-
-                peerConnection.onicecandidate = (e) => {
-                    if (e.candidate) {
-                        updateIceCandidates('receiver_ice', e.candidate);
-                    }
-                };
-
-                // 3. Handle Offer
-                await peerConnection.setRemoteDescription(new RTCSessionDescription(session.offer));
-                const answer = await peerConnection.createAnswer();
-                await peerConnection.setLocalDescription(answer);
-
-                // 4. Send Answer to Supabase
-                await supabase.from('sessions').update({ answer }).eq('code', code);
-
-                // 5. Listen for ICE candidates
-                listenForIce();
-
+                supabase = window.createClient(SUPABASE_URL, SUPABASE_KEY);
             } catch (err) {
+                showError("Failed to initialize. Please check your connection.");
                 console.error(err);
-                showError("Connection failed. Ensure you have internet access.");
+                return;
             }
-        }
 
-        function setupDataChannel() {
-            dataChannel.onopen = () => {
-                statusText.textContent = "Connected!";
-                transferUI.style.display = 'block';
-                startTime = Date.now();
-            };
+            async function initReceiver() {
+                try {
+                    // 1. Fetch Offer from Supabase
+                    const { data: session, error } = await supabase
+                        .from('sessions')
+                        .select('*')
+                        .eq('code', code)
+                        .single();
 
-            dataChannel.onmessage = (event) => {
-                if (typeof event.data === 'string') {
-                    const msg = JSON.parse(event.data);
-                    if (msg.type === 'meta') {
-                        fileName = msg.name;
-                        fileSize = msg.size;
-                        filenameText.textContent = fileName;
-                        statusText.textContent = "Receiving...";
-                        receivedBytes = 0;
+                    if (error || !session) {
+                        showError("Session not found or expired.");
+                        return;
                     }
-                } else {
-                    receivedChunks.push(event.data);
-                    receivedBytes += event.data.byteLength;
-                    updateProgress();
 
-                    if (receivedBytes >= fileSize) {
-                        completeTransfer();
-                    }
-                }
-            };
-        }
-
-        function updateProgress() {
-            const percent = Math.floor((receivedBytes / fileSize) * 100);
-            progressBar.style.width = percent + '%';
-            percentText.textContent = percent + '%';
-
-            const elapsed = (Date.now() - startTime) / 1000;
-            if (elapsed > 0) {
-                const speed = (receivedBytes / 1024 / 1024) / elapsed;
-                speedText.textContent = speed.toFixed(1) + " MB/s";
-            }
-        }
-
-        function completeTransfer() {
-            const blob = new Blob(receivedChunks);
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = fileName;
-            a.click();
-
-            transferUI.style.display = 'none';
-            statusText.style.display = 'none';
-            filenameText.style.display = 'none';
-            hint.style.display = 'none';
-            successUI.style.display = 'block';
-            document.querySelector('.success-icon').style.display = 'block';
-        }
-
-        async function updateIceCandidates(field, candidate) {
-            const { data } = await supabase.from('sessions').select(field).eq('code', code).single();
-            const candidates = data[field] || [];
-            candidates.push(candidate);
-            await supabase.from('sessions').update({ [field]: candidates }).eq('code', code);
-        }
-
-        function listenForIce() {
-            supabase.channel('ice_receiver')
-                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sessions', filter: `code=eq.${code}` }, payload => {
-                    const candidates = payload.new.sender_ice || [];
-                    candidates.forEach(c => {
-                        if (peerConnection.remoteDescription) {
-                            peerConnection.addIceCandidate(new RTCIceCandidate(c));
-                        }
+                    // 2. Setup WebRTC
+                    peerConnection = new RTCPeerConnection({
+                        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
                     });
-                })
-                .subscribe();
-        }
+
+                    peerConnection.ondatachannel = (e) => {
+                        dataChannel = e.channel;
+                        setupDataChannel();
+                    };
+
+                    peerConnection.onicecandidate = (e) => {
+                        if (e.candidate) {
+                            updateIceCandidates('receiver_ice', e.candidate);
+                        }
+                    };
+
+                    // 3. Handle Offer
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(session.offer));
+                    const answer = await peerConnection.createAnswer();
+                    await peerConnection.setLocalDescription(answer);
+
+                    // 4. Send Answer to Supabase
+                    await supabase.from('sessions').update({ answer }).eq('code', code);
+
+                    // 5. Listen for ICE candidates
+                    listenForIce();
+
+                } catch (err) {
+                    console.error(err);
+                    showError("Connection failed. Ensure you have internet access.");
+                }
+            }
+
+            function setupDataChannel() {
+                dataChannel.onopen = () => {
+                    statusText.textContent = "Connected!";
+                    transferUI.style.display = 'block';
+                    startTime = Date.now();
+                };
+
+                dataChannel.onmessage = (event) => {
+                    if (typeof event.data === 'string') {
+                        const msg = JSON.parse(event.data);
+                        if (msg.type === 'meta') {
+                            fileName = msg.name;
+                            fileSize = msg.size;
+                            filenameText.textContent = fileName;
+                            statusText.textContent = "Receiving...";
+                            receivedBytes = 0;
+                        }
+                    } else {
+                        receivedChunks.push(event.data);
+                        receivedBytes += event.data.byteLength;
+                        updateProgress();
+
+                        if (receivedBytes >= fileSize) {
+                            completeTransfer();
+                        }
+                    }
+                };
+            }
+
+            function updateProgress() {
+                const percent = Math.floor((receivedBytes / fileSize) * 100);
+                progressBar.style.width = percent + '%';
+                percentText.textContent = percent + '%';
+
+                const elapsed = (Date.now() - startTime) / 1000;
+                if (elapsed > 0) {
+                    const speed = (receivedBytes / 1024 / 1024) / elapsed;
+                    speedText.textContent = speed.toFixed(1) + " MB/s";
+                }
+            }
+
+            function completeTransfer() {
+                const blob = new Blob(receivedChunks);
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileName;
+                a.click();
+
+                transferUI.style.display = 'none';
+                statusText.style.display = 'none';
+                filenameText.style.display = 'none';
+                hint.style.display = 'none';
+                successUI.style.display = 'block';
+                document.querySelector('.success-icon').style.display = 'block';
+            }
+
+            async function updateIceCandidates(field, candidate) {
+                const { data } = await supabase.from('sessions').select(field).eq('code', code).single();
+                const candidates = data[field] || [];
+                candidates.push(candidate);
+                await supabase.from('sessions').update({ [field]: candidates }).eq('code', code);
+            }
+
+            function listenForIce() {
+                supabase.channel('ice_receiver')
+                    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sessions', filter: `code=eq.${code}` }, payload => {
+                        const candidates = payload.new.sender_ice || [];
+                        candidates.forEach(c => {
+                            if (peerConnection.remoteDescription) {
+                                peerConnection.addIceCandidate(new RTCIceCandidate(c));
+                            }
+                        });
+                    })
+                    .subscribe();
+            }
+
+            // Start the receiver
+            initReceiver();
+        });
     </script>
 </body>
 
