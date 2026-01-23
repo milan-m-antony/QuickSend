@@ -21,6 +21,8 @@ let fileSize = 0;
 let fileName = '';
 let startTime = 0;
 let role = ''; // 'sender' or 'receiver'
+let iceCandidateQueue = [];
+let iceUpdateTimer = null;
 
 // DOM Elements
 const views = {
@@ -410,27 +412,46 @@ async function joinSession(code) {
 function createPeerConnection() {
     peerConnection = new RTCPeerConnection(rtcConfig);
 
-    // ICE Candidate Handling
+    // ICE Candidate Handling with Batching (reduces DB calls)
     peerConnection.onicecandidate = async (e) => {
         if (e.candidate && sessionCode) {
-            try {
-                const { data } = await supabase.from('sessions').select(role === 'sender' ? 'sender_ice' : 'receiver_ice').eq('code', sessionCode).single();
-                if (!data) return;
+            // Add to queue
+            iceCandidateQueue.push(e.candidate.toJSON());
 
-                const currentIce = data[role === 'sender' ? 'sender_ice' : 'receiver_ice'] || [];
-                currentIce.push(e.candidate.toJSON());
+            // Clear existing timer
+            if (iceUpdateTimer) clearTimeout(iceUpdateTimer);
 
-                await supabase
-                    .from('sessions')
-                    .update({
-                        [role === 'sender' ? 'sender_ice' : 'receiver_ice']: currentIce
-                    })
-                    .eq('code', sessionCode);
-            } catch (err) {
-                console.warn('ICE update skipped (session might be gone):', err);
+            // Batch send after 100ms or when we have 3+ candidates
+            if (iceCandidateQueue.length >= 3) {
+                flushIceCandidates();
+            } else {
+                iceUpdateTimer = setTimeout(flushIceCandidates, 100);
             }
         }
     };
+
+    async function flushIceCandidates() {
+        if (iceCandidateQueue.length === 0 || !sessionCode) return;
+
+        const candidatesToSend = [...iceCandidateQueue];
+        iceCandidateQueue = [];
+
+        try {
+            const iceField = role === 'sender' ? 'sender_ice' : 'receiver_ice';
+            const { data } = await supabase.from('sessions').select('*').eq('code', sessionCode).single();
+            if (!data) return;
+
+            const currentIce = data[iceField] || [];
+            currentIce.push(...candidatesToSend);
+
+            await supabase
+                .from('sessions')
+                .update({ [iceField]: currentIce })
+                .eq('code', sessionCode);
+        } catch (err) {
+            console.warn('ICE batch update skipped:', err);
+        }
+    }
 
     peerConnection.onconnectionstatechange = () => {
         const state = peerConnection.connectionState;
