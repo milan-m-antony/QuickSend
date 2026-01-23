@@ -318,6 +318,9 @@ async function startSenderSession() {
     // Generate QR Code
     ui.qrCodeContainer.classList.remove('hidden');
 
+    // Clear any existing QR code first to prevent stacking
+    ui.qrcode.innerHTML = '';
+
     // For local testing, QR will just contain the 6-digit code.
     // Replace 'YOUR_HOSTED_URL' below with your real domain (e.g. quicksend.vercel.app)
     const host = 'quick-send-iota.vercel.app';
