@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>QuickSend - Receive File</title>
+    <title>QuickSend - Mobile Client</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -20,7 +20,8 @@
             --error: #ef4444;
             --glass-bg: rgba(13, 17, 28, 0.85);
             --glass-border: rgba(255, 255, 255, 0.1);
-            --radius-xl: 32px;
+            --radius-xl: 24px;
+            --radius-lg: 16px;
         }
 
         * {
@@ -36,6 +37,7 @@
             font-family: 'Outfit', sans-serif;
             min-height: 100vh;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             overflow: hidden;
@@ -61,169 +63,150 @@
             animation: float 15s infinite ease-in-out;
         }
 
-        .blob-1 {
-            width: 300px;
-            height: 300px;
-            background: radial-gradient(circle, var(--accent), #0077ff);
-            top: -5%;
-            left: -10%;
-        }
-
-        .blob-2 {
-            width: 300px;
-            height: 300px;
-            background: radial-gradient(circle, var(--accent-purple), #7e22ce);
-            bottom: -5%;
-            right: -10%;
-            animation-delay: -5s;
-        }
+        .blob-1 { width: 300px; height: 300px; background: radial-gradient(circle, var(--accent), #0077ff); top: -10%; left: -10%; }
+        .blob-2 { width: 300px; height: 300px; background: radial-gradient(circle, var(--accent-purple), #7e22ce); bottom: -10%; right: -10%; animation-delay: -5s; }
 
         @keyframes float {
-
-            0%,
-            100% {
-                transform: translate(0, 0) scale(1);
-            }
-
-            33% {
-                transform: translate(30px, -50px) scale(1.1);
-            }
-
-            66% {
-                transform: translate(-20px, 20px) scale(0.9);
-            }
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(30px, -50px) scale(1.1); }
+            66% { transform: translate(-20px, 20px) scale(0.9); }
         }
 
         .container {
             width: 90%;
-            max-width: 400px;
+            max-width: 450px;
             background: var(--glass-bg);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             border: 1px solid var(--glass-border);
             border-radius: var(--radius-xl);
-            padding: 40px 24px;
+            padding: 30px 24px;
             text-align: center;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
             animation: slideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            max-height: 90vh;
         }
 
         @keyframes slideUp {
-            from {
-                transform: translateY(40px);
-                opacity: 0;
-            }
-
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
+            from { transform: translateY(40px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
         }
 
-        .logo {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            margin-bottom: 30px;
-        }
+        /* Branding */
+        .logo { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 10px; }
+        .logo img { width: 40px; height: 40px; filter: drop-shadow(0 0 10px var(--accent-glow)); }
+        .logo h1 { font-size: 24px; font-weight: 700; background: linear-gradient(135deg, var(--accent), var(--accent-purple)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
 
-        .logo img {
-            width: 48px;
-            height: 48px;
-            filter: drop-shadow(0 0 10px var(--accent-glow));
-        }
-
-        .logo h1 {
-            font-size: 28px;
-            font-weight: 700;
-            background: linear-gradient(135deg, var(--accent), var(--accent-purple));
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .status-container {
-            margin-bottom: 40px;
-        }
-
-        #status-text {
-            font-size: 18px;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 8px;
-        }
-
-        #filename {
-            font-size: 14px;
-            color: var(--text-secondary);
-            font-weight: 400;
-            word-break: break-all;
-        }
-
-        .progress-wrapper {
-            background: rgba(255, 255, 255, 0.05);
-            height: 12px;
+        /* Status & Progress */
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
             border-radius: 99px;
-            overflow: hidden;
-            margin: 20px 0;
+            background: rgba(255, 255, 255, 0.05);
             border: 1px solid var(--glass-border);
-        }
-
-        #progress-bar {
-            height: 100%;
-            width: 0%;
-            background: linear-gradient(to right, var(--accent), var(--accent-purple));
-            box-shadow: 0 0 15px var(--accent-glow);
-            transition: width 0.3s ease;
-        }
-
-        .stats {
-            display: flex;
-            justify-content: bwtween;
-            font-size: 12px;
-            color: var(--text-secondary);
+            font-size: 13px;
             font-weight: 600;
-        }
-
-        .primary-btn {
-            display: block;
-            width: 100%;
-            padding: 18px;
-            border-radius: 16px;
-            border: none;
-            background: linear-gradient(135deg, var(--accent), var(--accent-purple));
-            color: #0c0e14;
-            font-size: 16px;
-            font-weight: 700;
-            cursor: pointer;
-            text-decoration: none;
-            margin-top: 20px;
-            box-shadow: 0 10px 20px -5px rgba(0, 242, 255, 0.3);
-            transition: all 0.3s ease;
-        }
-
-        .primary-btn.hidden {
-            display: none;
-        }
-
-        .error-message {
-            color: var(--error);
-            font-size: 14px;
-            background: rgba(239, 68, 68, 0.1);
-            padding: 12px;
-            border-radius: 12px;
-            margin-top: 20px;
-            display: none;
-        }
-
-        /* Success Animation */
-        .success-icon {
-            font-size: 60px;
-            color: var(--success);
             margin-bottom: 20px;
-            display: none;
         }
+        .status-badge.connected { color: var(--success); border-color: rgba(16, 185, 129, 0.3); background: rgba(16, 185, 129, 0.1); }
+        .status-badge.error { color: var(--error); border-color: rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.1); }
+
+        .progress-container { margin: 10px 0; display: none; }
+        .progress-wrapper { background: rgba(255, 255, 255, 0.05); height: 8px; border-radius: 99px; overflow: hidden; margin-bottom: 8px; }
+        .progress-bar { height: 100%; width: 0%; background: linear-gradient(to right, var(--accent), var(--accent-purple)); box-shadow: 0 0 10px var(--accent-glow); transition: width 0.2s linear; }
+        .stats { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-secondary); font-weight: 500; }
+        .current-filename { font-size: 14px; margin-bottom: 10px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        /* Received Files List */
+        .files-list { max-height: 150px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin: 10px 0; padding-right: 5px; }
+        .file-item { background: rgba(255, 255, 255, 0.03); border: 1px solid var(--glass-border); border-radius: 12px; padding: 12px; display: flex; justify-content: space-between; align-items: center; text-align: left; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .file-info { overflow: hidden; margin-right: 10px; }
+        .file-name { font-size: 13px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; }
+        .file-size { font-size: 11px; color: var(--text-secondary); }
+        .file-action-btn { background: rgba(0, 242, 255, 0.1); color: var(--accent); border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; }
+
+        /* Buttons */
+        .primary-btn { display: block; width: 100%; padding: 16px; border-radius: var(--radius-lg); border: none; background: linear-gradient(135deg, var(--accent), var(--accent-purple)); color: #0c0e14; font-size: 16px; font-weight: 700; cursor: pointer; transition: transform 0.2s; box-shadow: 0 4px 15px rgba(0, 242, 255, 0.3); }
+        .primary-btn:active { transform: scale(0.98); }
+        .primary-btn.disabled { opacity: 0.5; pointer-events: none; filter: grayscale(1); }
+
+        /* Chat Toggle FAB */
+        .fab-chat {
+            position: fixed; bottom: 20px; right: 20px;
+            width: 56px; height: 56px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), var(--accent-purple));
+            border: none;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px; cursor: pointer; z-index: 100;
+            transition: transform 0.3s;
+        }
+        .fab-chat:active { transform: scale(0.9); }
+        .unread-dot {
+            position: absolute; top: 0; right: 0;
+            width: 14px; height: 14px;
+            background: #ef4444;
+            border: 2px solid #0c0e14;
+            border-radius: 50%;
+            animation: pulse-dot 2s infinite;
+        }
+        .fab-chat.hidden { display: none; }
+        @keyframes pulse-dot { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+
+        /* Chat Drawer */
+        .chat-drawer {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            height: 70vh;
+            background: #13161f;
+            border-top: 1px solid var(--glass-border);
+            border-radius: 24px 24px 0 0;
+            box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.6);
+            transform: translateY(110%);
+            transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            z-index: 1000;
+            display: flex; flex-direction: column;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .chat-drawer.open { transform: translateY(0); }
+        .chat-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .chat-header h3 { font-size: 16px; font-weight: 600; }
+        .close-chat { background: none; border: none; color: var(--text-secondary); font-size: 24px; cursor: pointer; padding: 5px; }
+        
+        .chat-messages {
+            flex: 1; overflow-y: auto; padding: 20px;
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .message { max-width: 80%; padding: 10px 14px; border-radius: 16px; font-size: 14px; line-height: 1.4; word-wrap: break-word; }
+        .message.sent { align-self: flex-end; background: linear-gradient(135deg, var(--accent), var(--accent-purple)); color: #0c0e14; border-bottom-right-radius: 4px; }
+        .message.received { align-self: flex-start; background: rgba(255, 255, 255, 0.1); color: white; border-bottom-left-radius: 4px; }
+
+        .chat-input-area {
+            padding: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex; gap: 10px;
+        }
+        .chat-input {
+            flex: 1; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--glass-border);
+            border-radius: 99px; padding: 12px 20px; color: white; outline: none; font-size: 14px;
+        }
+        .send-chat-btn {
+            background: var(--accent); color: #0c0e14; border: none;
+            width: 42px; height: 42px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; font-weight: bold;
+        }
+
+        .error-message { color: var(--error); font-size: 13px; background: rgba(239, 68, 68, 0.1); padding: 10px; border-radius: 12px; display: none; margin-top: 10px; }
+        .hidden { display: none !important; }
     </style>
 </head>
 
@@ -235,217 +218,361 @@
 
     <div class="container">
         <div class="logo">
-            <img src="icons/icon128.png" alt="QuickSend">
+            <img src="icons/icon128.png" alt="Logo">
             <h1>QuickSend</h1>
         </div>
 
-        <div class="status-container">
-            <div id="status-text">Connecting...</div>
-            <div id="filename">Getting file info</div>
-        </div>
+        <div id="status-badge" class="status-badge">Connecting...</div>
 
-        <div id="transfer-ui" style="display: none;">
-            <div class="progress-wrapper">
-                <div id="progress-bar"></div>
+        <!-- Transfer UI -->
+        <div id="transfer-ui">
+            <div id="current-filename" class="current-filename hidden"></div>
+            <div id="progress-container" class="progress-container">
+                <div class="progress-wrapper">
+                    <div id="progress-bar" class="progress-bar"></div>
+                </div>
+                <div class="stats">
+                    <span id="percent">0%</span>
+                    <span id="speed">0 MB/s</span>
+                </div>
             </div>
-            <div class="stats">
-                <span id="percent">0%</span>
-                <span id="speed" style="margin-left: auto;">0 MB/s</span>
+            
+            <div id="files-list" class="files-list">
+                <!-- Received files will appear here -->
             </div>
-        </div>
-
-        <div id="success-ui" style="display: none;">
-            <div class="success-icon">✓</div>
-            <h3 style="margin-bottom: 10px;">Transfer Complete!</h3>
-            <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 24px;">Your file has been saved to
-                the browser's downloads folder.</p>
         </div>
 
         <div id="error-ui" class="error-message"></div>
 
-        <p id="hint" style="font-size: 13px; color: var(--text-secondary); margin-top: 20px;">Keep this page open until
-            the transfer finishes.</p>
+        <!-- Actions -->
+        <div class="actions">
+            <button id="btn-send-file" class="primary-btn disabled">Send File</button>
+            <input type="file" id="file-input" hidden>
+        </div>
+        
+        <p style="font-size: 12px; color: var(--text-secondary); margin-top: 10px;">Keep browser open during transfer.</p>
     </div>
 
-    <!-- Required Libs -->
+    <!-- Chat Floating Button -->
+    <button id="btn-toggle-chat" class="fab-chat hidden">
+        <div id="chat-unread" class="unread-dot hidden"></div>
+        💬
+    </button>
+
+    <!-- Chat Drawer -->
+    <div id="chat-drawer" class="chat-drawer">
+        <div class="chat-header">
+            <h3>Peer Chat</h3>
+            <button id="btn-close-chat" class="close-chat">✕</button>
+        </div>
+        <div id="chat-messages" class="chat-messages">
+            <!-- Messages go here -->
+        </div>
+        <div class="chat-input-area">
+            <input type="text" id="chat-input" class="chat-input" placeholder="Type a message...">
+            <button id="btn-send-chat" class="send-chat-btn">➤</button>
+        </div>
+    </div>
+
+    <!-- Libs -->
     <script src="libs/supabase.js"></script>
     <script src="config.js"></script>
 
     <script>
-        // Wait for all scripts to load before initializing
         window.addEventListener('load', function() {
-            // --- P2P Logic for Mobile Web ---
+            // --- Logic ---
             const urlParams = new URLSearchParams(window.location.search);
             const code = urlParams.get('code');
 
-            const statusText = document.getElementById('status-text');
-            const filenameText = document.getElementById('filename');
-            const transferUI = document.getElementById('transfer-ui');
-            const progressBar = document.getElementById('progress-bar');
-            const percentText = document.getElementById('percent');
-            const speedText = document.getElementById('speed');
-            const successUI = document.getElementById('success-ui');
-            const errorUI = document.getElementById('error-ui');
-            const hint = document.getElementById('hint');
+            // UI Elements
+            const ui = {
+                status: document.getElementById('status-badge'),
+                error: document.getElementById('error-ui'),
+                progressContainer: document.getElementById('progress-container'),
+                progressBar: document.getElementById('progress-bar'),
+                percent: document.getElementById('percent'),
+                speed: document.getElementById('speed'),
+                filename: document.getElementById('current-filename'),
+                filesList: document.getElementById('files-list'),
+                btnSendFile: document.getElementById('btn-send-file'),
+                fileInput: document.getElementById('file-input'),
+                btnChatToggle: document.getElementById('btn-toggle-chat'),
+                chatDrawer: document.getElementById('chat-drawer'),
+                chatMessages: document.getElementById('chat-messages'),
+                chatInput: document.getElementById('chat-input'),
+                btnSendChat: document.getElementById('btn-send-chat'),
+                btnCloseChat: document.getElementById('btn-close-chat'),
+                chatUnread: document.getElementById('chat-unread')
+            };
 
             if (!code) {
-                showError("No connection code found. Please scan the QR code again.");
+                showError("No code found. Scan QR again.");
                 return;
             }
 
-            function showError(msg) {
-                errorUI.textContent = msg;
-                errorUI.style.display = 'block';
-                statusText.textContent = "Error";
-                statusText.style.color = 'var(--error)';
-            }
-
+            // Global State
             let peerConnection;
             let dataChannel;
-            let fileName = '';
-            let fileSize = 0;
-            let receivedBytes = 0;
+            let currentFile = null;
             let receivedChunks = [];
+            let receivedBytes = 0;
+            let totalSize = 0;
+            let incomingFileName = '';
             let startTime = 0;
-
-            // Initialize Supabase client
+            let receivedBlobUrls = [];
             let supabase;
+
             try {
                 supabase = window.createClient(SUPABASE_URL, SUPABASE_KEY);
             } catch (err) {
-                showError("Failed to initialize. Please check your connection.");
-                console.error(err);
+                showError("Init failed. Check internet.");
                 return;
             }
 
+            // --- Handlers ---
+
+            ui.btnSendFile.onclick = () => ui.fileInput.click();
+            ui.fileInput.onchange = (e) => {
+                const file = e.target.files[0];
+                if(file) startFileTransfer(file);
+                ui.fileInput.value = ''; // Reset
+            };
+
+            ui.btnChatToggle.onclick = () => {
+                ui.chatDrawer.classList.add('open');
+                ui.chatUnread.classList.add('hidden');
+            };
+            ui.btnCloseChat.onclick = () => ui.chatDrawer.classList.remove('open');
+            ui.btnSendChat.onclick = sendChat;
+            ui.chatInput.onkeydown = (e) => { if(e.key === 'Enter') sendChat(); }
+
+            function showError(msg) {
+                ui.error.textContent = msg;
+                ui.error.style.display = 'block';
+                ui.status.textContent = "Error";
+                ui.status.classList.add('error');
+            }
+
+            function updateStatus(text, type) {
+                ui.status.textContent = text;
+                ui.status.className = 'status-badge ' + (type || '');
+            }
+
+            // --- P2P Connection ---
+
             async function initReceiver() {
                 try {
-                    // 1. Fetch Offer from Supabase
-                    const { data: session, error } = await supabase
-                        .from('sessions')
-                        .select('*')
-                        .eq('code', code)
-                        .single();
+                    const { data: session, error } = await supabase.from('sessions').select('*').eq('code', code).single();
+                    if (error || !session) { showError("Session expired."); return; }
 
-                    if (error || !session) {
-                        showError("Session not found or expired.");
-                        return;
-                    }
+                    peerConnection = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
 
-                    // 2. Setup WebRTC
-                    peerConnection = new RTCPeerConnection({
-                        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-                    });
-
+                    // Handle Incoming Data Channel (from PC)
                     peerConnection.ondatachannel = (e) => {
                         dataChannel = e.channel;
-                        setupDataChannel();
+                        setupDataChannel(dataChannel);
                     };
 
-                    peerConnection.onicecandidate = (e) => {
+                    peerConnection.onicecandidate = async (e) => {
                         if (e.candidate) {
-                            updateIceCandidates('receiver_ice', e.candidate);
+                            // RPC or Array update logic (using simple array push for now as single candidate updates are fine for this scale)
+                             const { data } = await supabase.from('sessions').select('receiver_ice').eq('code', code).single();
+                             const current = data?.receiver_ice || [];
+                             current.push(e.candidate);
+                             await supabase.from('sessions').update({ receiver_ice: current }).eq('code', code);
                         }
                     };
 
-                    // 3. Handle Offer
                     await peerConnection.setRemoteDescription(new RTCSessionDescription(session.offer));
                     const answer = await peerConnection.createAnswer();
                     await peerConnection.setLocalDescription(answer);
-
-                    // 4. Send Answer to Supabase
                     await supabase.from('sessions').update({ answer }).eq('code', code);
 
-                    // 5. Listen for ICE candidates
-                    listenForIce();
+                    // Listen into session
+                     supabase.channel(`session-${code}`)
+                        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sessions', filter: `code=eq.${code}` }, payload => {
+                            const data = payload.new;
+                            if (data.sender_ice) {
+                                data.sender_ice.forEach(c => {
+                                    peerConnection.addIceCandidate(new RTCIceCandidate(c)).catch(() => {});
+                                });
+                            }
+                        })
+                        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'sessions', filter: `code=eq.${code}` }, () => {
+                             updateStatus("Peer Disconnected", 'error');
+                             ui.btnSendFile.classList.add('disabled');
+                        })
+                        .subscribe();
 
                 } catch (err) {
                     console.error(err);
-                    showError("Connection failed. Ensure you have internet access.");
+                    showError("Connection failed.");
                 }
             }
 
-            function setupDataChannel() {
-                dataChannel.onopen = () => {
-                    statusText.textContent = "Connected!";
-                    transferUI.style.display = 'block';
-                    startTime = Date.now();
+            function setupDataChannel(channel) {
+                channel.onopen = () => {
+                    updateStatus("Connected", "connected");
+                    ui.btnSendFile.classList.remove('disabled');
+                    ui.btnChatToggle.classList.remove('hidden');
                 };
+                channel.onmessage = handleMessage;
+            }
 
-                dataChannel.onmessage = (event) => {
-                    if (typeof event.data === 'string') {
-                        const msg = JSON.parse(event.data);
-                        if (msg.type === 'meta') {
-                            fileName = msg.name;
-                            fileSize = msg.size;
-                            filenameText.textContent = fileName;
-                            statusText.textContent = "Receiving...";
-                            receivedBytes = 0;
-                        }
-                    } else {
-                        receivedChunks.push(event.data);
-                        receivedBytes += event.data.byteLength;
-                        updateProgress();
-
-                        if (receivedBytes >= fileSize) {
-                            completeTransfer();
-                        }
+            function handleMessage(event) {
+                const data = event.data;
+                if (typeof data === 'string') {
+                    const msg = JSON.parse(data);
+                    if (msg.type === 'meta') {
+                        // Start Receive
+                        incomingFileName = msg.name;
+                        totalSize = msg.size;
+                        receivedBytes = 0;
+                        receivedChunks = [];
+                        startTime = Date.now();
+                        
+                        ui.filename.textContent = "Receiving: " + incomingFileName;
+                        ui.filename.classList.remove('hidden');
+                        ui.progressContainer.style.display = 'block';
+                        updateProgress(0);
+                    } else if (msg.type === 'chat') {
+                        addChatMessage('received', msg.text);
                     }
-                };
-            }
+                } else {
+                    // Binary
+                    receivedChunks.push(data);
+                    receivedBytes += data.byteLength;
+                    updateProgress(receivedBytes);
 
-            function updateProgress() {
-                const percent = Math.floor((receivedBytes / fileSize) * 100);
-                progressBar.style.width = percent + '%';
-                percentText.textContent = percent + '%';
-
-                const elapsed = (Date.now() - startTime) / 1000;
-                if (elapsed > 0) {
-                    const speed = (receivedBytes / 1024 / 1024) / elapsed;
-                    speedText.textContent = speed.toFixed(1) + " MB/s";
+                    if (receivedBytes >= totalSize) {
+                        finishFileReceive();
+                    }
                 }
             }
 
-            function completeTransfer() {
+            function finishFileReceive() {
                 const blob = new Blob(receivedChunks);
                 const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = fileName;
-                a.click();
+                receivedBlobUrls.push(url);
 
-                transferUI.style.display = 'none';
-                statusText.style.display = 'none';
-                filenameText.style.display = 'none';
-                hint.style.display = 'none';
-                successUI.style.display = 'block';
-                document.querySelector('.success-icon').style.display = 'block';
+                // Add to list
+                const div = document.createElement('div');
+                div.className = 'file-item';
+                div.innerHTML = `
+                    <div class="file-info">
+                        <div class="file-name">${incomingFileName}</div>
+                        <div class="file-size">${(totalSize/1024/1024).toFixed(2)} MB</div>
+                    </div>
+                    <a href="${url}" download="${incomingFileName}" class="file-action-btn">Download</a>
+                `;
+                ui.filesList.appendChild(div);
+                
+                // Reset Progress UI
+                ui.progressContainer.style.display = 'none';
+                ui.filename.textContent = '';
             }
 
-            async function updateIceCandidates(field, candidate) {
-                const { data } = await supabase.from('sessions').select(field).eq('code', code).single();
-                const candidates = data[field] || [];
-                candidates.push(candidate);
-                await supabase.from('sessions').update({ [field]: candidates }).eq('code', code);
+            function updateProgress(bytes) {
+                if(totalSize === 0) return;
+                const percent = Math.floor((bytes / totalSize) * 100);
+                ui.progressBar.style.width = percent + '%';
+                ui.percent.textContent = percent + '%';
+                
+                const duration = (Date.now() - startTime) / 1000;
+                if(duration > 0) {
+                    const speed = (bytes / 1024 / 1024) / duration;
+                    ui.speed.textContent = speed.toFixed(1) + ' MB/s';
+                }
             }
 
-            function listenForIce() {
-                supabase.channel('ice_receiver')
-                    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sessions', filter: `code=eq.${code}` }, payload => {
-                        const candidates = payload.new.sender_ice || [];
-                        candidates.forEach(c => {
-                            if (peerConnection.remoteDescription) {
-                                peerConnection.addIceCandidate(new RTCIceCandidate(c));
+            // --- Chat Logic ---
+
+            function sendChat() {
+                const text = ui.chatInput.value.trim();
+                if(!text || !dataChannel || dataChannel.readyState !== 'open') return;
+                
+                dataChannel.send(JSON.stringify({ type: 'chat', text: text }));
+                addChatMessage('sent', text);
+                ui.chatInput.value = '';
+            }
+
+            function addChatMessage(dir, text) {
+                const div = document.createElement('div');
+                div.className = `message ${dir}`;
+                div.textContent = text;
+                ui.chatMessages.appendChild(div);
+                ui.chatMessages.scrollTop = ui.chatMessages.scrollHeight;
+
+                if (dir === 'received' && !ui.chatDrawer.classList.contains('open')) {
+                    ui.chatUnread.classList.remove('hidden');
+                }
+            }
+
+            // --- Sending File Logic ---
+            
+            async function startFileTransfer(file) {
+                if (!file || !dataChannel) return;
+
+                ui.filename.textContent = "Sending: " + file.name;
+                ui.filename.classList.remove('hidden');
+                ui.progressContainer.style.display = 'block';
+                startTime = Date.now();
+                totalSize = file.size; // Global for progress update reusing
+
+                // 1. Send Meta
+                dataChannel.send(JSON.stringify({ type: 'meta', name: file.name, size: file.size, mime: file.type }));
+
+                // 2. Send Chunks
+                const CHUNK_SIZE = 16 * 1024;
+                let offset = 0;
+                const reader = new FileReader();
+
+                reader.onload = async (e) => {
+                    const buffer = e.target.result;
+                    if (dataChannel.bufferedAmount > 4 * 1024 * 1024) {
+                        await waitForBuffer();
+                    }
+                    try {
+                        dataChannel.send(buffer);
+                        offset += buffer.byteLength;
+                        updateProgress(offset); // Reusing same progress UI
+
+                        if (offset < file.size) {
+                            readSlice(offset);
+                        } else {
+                            ui.filename.textContent = "Sent: " + file.name;
+                            setTimeout(() => {
+                                ui.progressContainer.style.display = 'none';
+                                ui.filename.textContent = '';
+                            }, 2000);
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        showError("Send failed");
+                    }
+                };
+
+                function readSlice(o) {
+                    const slice = file.slice(o, o + CHUNK_SIZE);
+                    reader.readAsArrayBuffer(slice);
+                }
+
+                function waitForBuffer() {
+                    return new Promise(resolve => {
+                        const i = setInterval(() => {
+                            if (dataChannel.bufferedAmount < 1024 * 1024) {
+                                clearInterval(i);
+                                resolve();
                             }
-                        });
-                    })
-                    .subscribe();
+                        }, 100);
+                    });
+                }
+
+                readSlice(0);
             }
 
-            // Start the receiver
             initReceiver();
         });
     </script>
 </body>
-
 </html>
