@@ -63,13 +63,37 @@
             animation: float 15s infinite ease-in-out;
         }
 
-        .blob-1 { width: 300px; height: 300px; background: radial-gradient(circle, var(--accent), #0077ff); top: -10%; left: -10%; }
-        .blob-2 { width: 300px; height: 300px; background: radial-gradient(circle, var(--accent-purple), #7e22ce); bottom: -10%; right: -10%; animation-delay: -5s; }
+        .blob-1 {
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, var(--accent), #0077ff);
+            top: -10%;
+            left: -10%;
+        }
+
+        .blob-2 {
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, var(--accent-purple), #7e22ce);
+            bottom: -10%;
+            right: -10%;
+            animation-delay: -5s;
+        }
 
         @keyframes float {
-            0%, 100% { transform: translate(0, 0) scale(1); }
-            33% { transform: translate(30px, -50px) scale(1.1); }
-            66% { transform: translate(-20px, 20px) scale(0.9); }
+
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            33% {
+                transform: translate(30px, -50px) scale(1.1);
+            }
+
+            66% {
+                transform: translate(-20px, 20px) scale(0.9);
+            }
         }
 
         .container {
@@ -91,14 +115,40 @@
         }
 
         @keyframes slideUp {
-            from { transform: translateY(40px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
+            from {
+                transform: translateY(40px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
         }
 
         /* Branding */
-        .logo { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 10px; }
-        .logo img { width: 40px; height: 40px; filter: drop-shadow(0 0 10px var(--accent-glow)); }
-        .logo h1 { font-size: 24px; font-weight: 700; background: linear-gradient(135deg, var(--accent), var(--accent-purple)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .logo img {
+            width: 40px;
+            height: 40px;
+            filter: drop-shadow(0 0 10px var(--accent-glow));
+        }
+
+        .logo h1 {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent), var(--accent-purple));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
 
         /* Status & Progress */
         .status-badge {
@@ -111,56 +161,211 @@
             font-weight: 600;
             margin-bottom: 20px;
         }
-        .status-badge.connected { color: var(--success); border-color: rgba(16, 185, 129, 0.3); background: rgba(16, 185, 129, 0.1); }
-        .status-badge.error { color: var(--error); border-color: rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.1); }
 
-        .progress-container { margin: 10px 0; display: none; }
-        .progress-wrapper { background: rgba(255, 255, 255, 0.05); height: 8px; border-radius: 99px; overflow: hidden; margin-bottom: 8px; }
-        .progress-bar { height: 100%; width: 0%; background: linear-gradient(to right, var(--accent), var(--accent-purple)); box-shadow: 0 0 10px var(--accent-glow); transition: width 0.2s linear; }
-        .stats { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-secondary); font-weight: 500; }
-        .current-filename { font-size: 14px; margin-bottom: 10px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .status-badge.connected {
+            color: var(--success);
+            border-color: rgba(16, 185, 129, 0.3);
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .status-badge.error {
+            color: var(--error);
+            border-color: rgba(239, 68, 68, 0.3);
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .progress-container {
+            margin: 10px 0;
+            display: none;
+        }
+
+        .progress-wrapper {
+            background: rgba(255, 255, 255, 0.05);
+            height: 8px;
+            border-radius: 99px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(to right, var(--accent), var(--accent-purple));
+            box-shadow: 0 0 10px var(--accent-glow);
+            transition: width 0.2s linear;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .current-filename {
+            font-size: 14px;
+            margin-bottom: 10px;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
 
         /* Received Files List */
-        .files-list { max-height: 150px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin: 10px 0; padding-right: 5px; }
-        .file-item { background: rgba(255, 255, 255, 0.03); border: 1px solid var(--glass-border); border-radius: 12px; padding: 12px; display: flex; justify-content: space-between; align-items: center; text-align: left; animation: fadeIn 0.3s ease; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .file-info { overflow: hidden; margin-right: 10px; }
-        .file-name { font-size: 13px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; }
-        .file-size { font-size: 11px; color: var(--text-secondary); }
-        .file-action-btn { background: rgba(0, 242, 255, 0.1); color: var(--accent); border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; }
+        .files-list {
+            max-height: 150px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 10px 0;
+            padding-right: 5px;
+        }
+
+        .file-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-align: left;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .file-info {
+            overflow: hidden;
+            margin-right: 10px;
+        }
+
+        .file-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 2px;
+        }
+
+        .file-size {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .file-action-btn {
+            background: rgba(0, 242, 255, 0.1);
+            color: var(--accent);
+            border: none;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
 
         /* Buttons */
-        .primary-btn { display: block; width: 100%; padding: 16px; border-radius: var(--radius-lg); border: none; background: linear-gradient(135deg, var(--accent), var(--accent-purple)); color: #0c0e14; font-size: 16px; font-weight: 700; cursor: pointer; transition: transform 0.2s; box-shadow: 0 4px 15px rgba(0, 242, 255, 0.3); }
-        .primary-btn:active { transform: scale(0.98); }
-        .primary-btn.disabled { opacity: 0.5; pointer-events: none; filter: grayscale(1); }
+        .primary-btn {
+            display: block;
+            width: 100%;
+            padding: 16px;
+            border-radius: var(--radius-lg);
+            border: none;
+            background: linear-gradient(135deg, var(--accent), var(--accent-purple));
+            color: #0c0e14;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s;
+            box-shadow: 0 4px 15px rgba(0, 242, 255, 0.3);
+        }
+
+        .primary-btn:active {
+            transform: scale(0.98);
+        }
+
+        .primary-btn.disabled {
+            opacity: 0.5;
+            pointer-events: none;
+            filter: grayscale(1);
+        }
 
         /* Chat Toggle FAB */
         .fab-chat {
-            position: fixed; bottom: 20px; right: 20px;
-            width: 56px; height: 56px;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
             border-radius: 50%;
             background: linear-gradient(135deg, var(--accent), var(--accent-purple));
             border: none;
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 24px; cursor: pointer; z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 100;
             transition: transform 0.3s;
         }
-        .fab-chat:active { transform: scale(0.9); }
+
+        .fab-chat:active {
+            transform: scale(0.9);
+        }
+
         .unread-dot {
-            position: absolute; top: 0; right: 0;
-            width: 14px; height: 14px;
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 14px;
+            height: 14px;
             background: #ef4444;
             border: 2px solid #0c0e14;
             border-radius: 50%;
             animation: pulse-dot 2s infinite;
         }
-        .fab-chat.hidden { display: none; }
-        @keyframes pulse-dot { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+
+        .fab-chat.hidden {
+            display: none;
+        }
+
+        @keyframes pulse-dot {
+            0% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+            }
+        }
 
         /* Chat Drawer */
         .chat-drawer {
-            position: fixed; bottom: 0; left: 0; right: 0;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
             height: 70vh;
             background: #13161f;
             border-top: 1px solid var(--glass-border);
@@ -169,44 +374,114 @@
             transform: translateY(110%);
             transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
             z-index: 1000;
-            display: flex; flex-direction: column;
+            display: flex;
+            flex-direction: column;
             padding-bottom: env(safe-area-inset-bottom);
         }
-        .chat-drawer.open { transform: translateY(0); }
+
+        .chat-drawer.open {
+            transform: translateY(0);
+        }
+
         .chat-header {
             padding: 16px 20px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            display: flex; justify-content: space-between; align-items: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
-        .chat-header h3 { font-size: 16px; font-weight: 600; }
-        .close-chat { background: none; border: none; color: var(--text-secondary); font-size: 24px; cursor: pointer; padding: 5px; }
-        
+
+        .chat-header h3 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .close-chat {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 24px;
+            cursor: pointer;
+            padding: 5px;
+        }
+
         .chat-messages {
-            flex: 1; overflow-y: auto; padding: 20px;
-            display: flex; flex-direction: column; gap: 10px;
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
         }
-        .message { max-width: 80%; padding: 10px 14px; border-radius: 16px; font-size: 14px; line-height: 1.4; word-wrap: break-word; }
-        .message.sent { align-self: flex-end; background: linear-gradient(135deg, var(--accent), var(--accent-purple)); color: #0c0e14; border-bottom-right-radius: 4px; }
-        .message.received { align-self: flex-start; background: rgba(255, 255, 255, 0.1); color: white; border-bottom-left-radius: 4px; }
+
+        .message {
+            max-width: 80%;
+            padding: 10px 14px;
+            border-radius: 16px;
+            font-size: 14px;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+
+        .message.sent {
+            align-self: flex-end;
+            background: linear-gradient(135deg, var(--accent), var(--accent-purple));
+            color: #0c0e14;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.received {
+            align-self: flex-start;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border-bottom-left-radius: 4px;
+        }
 
         .chat-input-area {
             padding: 15px;
             border-top: 1px solid rgba(255, 255, 255, 0.05);
-            display: flex; gap: 10px;
-        }
-        .chat-input {
-            flex: 1; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--glass-border);
-            border-radius: 99px; padding: 12px 20px; color: white; outline: none; font-size: 14px;
-        }
-        .send-chat-btn {
-            background: var(--accent); color: #0c0e14; border: none;
-            width: 42px; height: 42px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer; font-weight: bold;
+            display: flex;
+            gap: 10px;
         }
 
-        .error-message { color: var(--error); font-size: 13px; background: rgba(239, 68, 68, 0.1); padding: 10px; border-radius: 12px; display: none; margin-top: 10px; }
-        .hidden { display: none !important; }
+        .chat-input {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--glass-border);
+            border-radius: 99px;
+            padding: 12px 20px;
+            color: white;
+            outline: none;
+            font-size: 14px;
+        }
+
+        .send-chat-btn {
+            background: var(--accent);
+            color: #0c0e14;
+            border: none;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .error-message {
+            color: var(--error);
+            font-size: 13px;
+            background: rgba(239, 68, 68, 0.1);
+            padding: 10px;
+            border-radius: 12px;
+            display: none;
+            margin-top: 10px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
     </style>
 </head>
 
@@ -236,7 +511,7 @@
                     <span id="speed">0 MB/s</span>
                 </div>
             </div>
-            
+
             <div id="files-list" class="files-list">
                 <!-- Received files will appear here -->
             </div>
@@ -249,8 +524,9 @@
             <button id="btn-send-file" class="primary-btn disabled">Send File</button>
             <input type="file" id="file-input" hidden>
         </div>
-        
-        <p style="font-size: 12px; color: var(--text-secondary); margin-top: 10px;">Keep browser open during transfer.</p>
+
+        <p style="font-size: 12px; color: var(--text-secondary); margin-top: 10px;">Keep browser open during transfer.
+        </p>
     </div>
 
     <!-- Chat Floating Button -->
@@ -279,7 +555,7 @@
     <script src="config.js"></script>
 
     <script>
-        window.addEventListener('load', function() {
+        window.addEventListener('load', function () {
             // --- Logic ---
             const urlParams = new URLSearchParams(window.location.search);
             const code = urlParams.get('code');
@@ -334,7 +610,7 @@
             ui.btnSendFile.onclick = () => ui.fileInput.click();
             ui.fileInput.onchange = (e) => {
                 const file = e.target.files[0];
-                if(file) startFileTransfer(file);
+                if (file) startFileTransfer(file);
                 ui.fileInput.value = ''; // Reset
             };
 
@@ -344,7 +620,7 @@
             };
             ui.btnCloseChat.onclick = () => ui.chatDrawer.classList.remove('open');
             ui.btnSendChat.onclick = sendChat;
-            ui.chatInput.onkeydown = (e) => { if(e.key === 'Enter') sendChat(); }
+            ui.chatInput.onkeydown = (e) => { if (e.key === 'Enter') sendChat(); }
 
             function showError(msg) {
                 ui.error.textContent = msg;
@@ -376,10 +652,10 @@
                     peerConnection.onicecandidate = async (e) => {
                         if (e.candidate) {
                             // RPC or Array update logic (using simple array push for now as single candidate updates are fine for this scale)
-                             const { data } = await supabase.from('sessions').select('receiver_ice').eq('code', code).single();
-                             const current = data?.receiver_ice || [];
-                             current.push(e.candidate);
-                             await supabase.from('sessions').update({ receiver_ice: current }).eq('code', code);
+                            const { data } = await supabase.from('sessions').select('receiver_ice').eq('code', code).maybeSingle();
+                            const current = data?.receiver_ice || [];
+                            current.push(e.candidate);
+                            await supabase.from('sessions').update({ receiver_ice: current }).eq('code', code);
                         }
                     };
 
@@ -389,18 +665,18 @@
                     await supabase.from('sessions').update({ answer }).eq('code', code);
 
                     // Listen into session
-                     supabase.channel(`session-${code}`)
+                    supabase.channel(`session-${code}`)
                         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sessions', filter: `code=eq.${code}` }, payload => {
                             const data = payload.new;
                             if (data.sender_ice) {
                                 data.sender_ice.forEach(c => {
-                                    peerConnection.addIceCandidate(new RTCIceCandidate(c)).catch(() => {});
+                                    peerConnection.addIceCandidate(new RTCIceCandidate(c)).catch(() => { });
                                 });
                             }
                         })
                         .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'sessions', filter: `code=eq.${code}` }, () => {
-                             updateStatus("Peer Disconnected", 'error');
-                             ui.btnSendFile.classList.add('disabled');
+                            updateStatus("Peer Disconnected", 'error');
+                            ui.btnSendFile.classList.add('disabled');
                         })
                         .subscribe();
 
@@ -430,7 +706,7 @@
                         receivedBytes = 0;
                         receivedChunks = [];
                         startTime = Date.now();
-                        
+
                         ui.filename.textContent = "Receiving: " + incomingFileName;
                         ui.filename.classList.remove('hidden');
                         ui.progressContainer.style.display = 'block';
@@ -461,25 +737,25 @@
                 div.innerHTML = `
                     <div class="file-info">
                         <div class="file-name">${incomingFileName}</div>
-                        <div class="file-size">${(totalSize/1024/1024).toFixed(2)} MB</div>
+                        <div class="file-size">${(totalSize / 1024 / 1024).toFixed(2)} MB</div>
                     </div>
                     <a href="${url}" download="${incomingFileName}" class="file-action-btn">Download</a>
                 `;
                 ui.filesList.appendChild(div);
-                
+
                 // Reset Progress UI
                 ui.progressContainer.style.display = 'none';
                 ui.filename.textContent = '';
             }
 
             function updateProgress(bytes) {
-                if(totalSize === 0) return;
+                if (totalSize === 0) return;
                 const percent = Math.floor((bytes / totalSize) * 100);
                 ui.progressBar.style.width = percent + '%';
                 ui.percent.textContent = percent + '%';
-                
+
                 const duration = (Date.now() - startTime) / 1000;
-                if(duration > 0) {
+                if (duration > 0) {
                     const speed = (bytes / 1024 / 1024) / duration;
                     ui.speed.textContent = speed.toFixed(1) + ' MB/s';
                 }
@@ -489,8 +765,8 @@
 
             function sendChat() {
                 const text = ui.chatInput.value.trim();
-                if(!text || !dataChannel || dataChannel.readyState !== 'open') return;
-                
+                if (!text || !dataChannel || dataChannel.readyState !== 'open') return;
+
                 dataChannel.send(JSON.stringify({ type: 'chat', text: text }));
                 addChatMessage('sent', text);
                 ui.chatInput.value = '';
@@ -509,7 +785,7 @@
             }
 
             // --- Sending File Logic ---
-            
+
             async function startFileTransfer(file) {
                 if (!file || !dataChannel) return;
 
@@ -575,4 +851,5 @@
         });
     </script>
 </body>
+
 </html>

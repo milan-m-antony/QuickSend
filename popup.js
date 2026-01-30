@@ -441,7 +441,7 @@ function createPeerConnection() {
 
         try {
             const iceField = role === 'sender' ? 'sender_ice' : 'receiver_ice';
-            const { data } = await supabase.from('sessions').select('*').eq('code', sessionCode).single();
+            const { data } = await supabase.from('sessions').select('*').eq('code', sessionCode).maybeSingle();
             if (!data) return;
 
             const currentIce = data[iceField] || [];
