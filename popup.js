@@ -68,8 +68,16 @@ const ui = {
     qrcode: document.getElementById('qrcode'),
     infoToggle: document.getElementById('info-toggle'),
     infoOverlay: document.getElementById('info-overlay'),
-    infoClose: document.getElementById('info-close')
+    infoToggle: document.getElementById('info-toggle'),
+    infoOverlay: document.getElementById('info-overlay'),
+    infoClose: document.getElementById('info-close'),
+    soundToggle: document.getElementById('sound-toggle')
 };
+
+// Init Audio
+AudioEngine.init();
+ui.soundToggle.textContent = AudioEngine.enabled ? '🔊' : '🔇';
+undoMute = () => { ui.soundToggle.textContent = AudioEngine.enabled ? '🔊' : '🔇'; };
 
 let receivedBlobUrls = []; // Track all URLs for cleanup
 
@@ -101,6 +109,13 @@ ui.chatToggle.onclick = () => {
 ui.btnSendChat.onclick = sendChatMessage;
 ui.chatInput.onkeydown = (e) => {
     if (e.key === 'Enter') sendChatMessage();
+};
+
+// Sound Toggle
+ui.soundToggle.onclick = () => {
+    const isOn = AudioEngine.toggle();
+    ui.soundToggle.textContent = isOn ? '🔊' : '🔇';
+    if (isOn) AudioEngine.play('nav');
 };
 
 // Paste Button
@@ -149,6 +164,7 @@ function sendChatMessage() {
     dataChannel.send(JSON.stringify(msg));
 
     addChatMessage('sent', text);
+    AudioEngine.play('message');
     ui.chatInput.value = '';
 }
 
@@ -516,6 +532,7 @@ function createPeerConnection() {
                 ui.status.classList.remove('disconnected');
                 ui.status.classList.add('connected');
                 showNotification('Connection successful!', 'success');
+                AudioEngine.play('connect');
 
                 if (role === 'sender') {
                     const codeToCleanup = sessionCode;
@@ -706,6 +723,7 @@ async function startFileTransfer() {
                 } else {
                     ui.transferTitle.textContent = 'All Files Sent!';
                     showNotification('Batch transfer complete!', 'success');
+                    AudioEngine.play('success');
                     ui.btnFinish.classList.remove('hidden');
                     ui.btnSendMore.classList.remove('hidden');
                 }
