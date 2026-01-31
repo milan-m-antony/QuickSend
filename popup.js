@@ -580,7 +580,7 @@ function listenToSessionChanges(code) {
 
 // --- File Transfer Logic ---
 
-const CHUNK_SIZE = 16 * 1024; // 16KB for better compatibility and stability
+const CHUNK_SIZE = 64 * 1024; // 64KB for faster transfer speeds
 
 async function startFileTransfer() {
     if (!currentFile || !dataChannel) return;
@@ -604,8 +604,13 @@ async function startFileTransfer() {
     // 2. Send Chunks
     const fileReader = new FileReader();
     let offset = 0;
+    let lastUIUpdate = 0;
 
-    function readSlice(o) {
+    // Set low buffer threshold for event-based backpressure
+    dataChannel.bufferedAmountLowThreshold = 64 * 1024;
+
+    function readSlice() {
+        if (offset >= currentFile.size) return;
         const slice = currentFile.slice(offset, offset + CHUNK_SIZE);
         fileReader.readAsArrayBuffer(slice);
     }
@@ -614,21 +619,32 @@ async function startFileTransfer() {
         const buffer = e.target.result;
         if (!buffer) return;
 
-        // Flow Control: Ensure we don't overwhelm the RTC buffer
-        // Using a lower 4MB limit for better responsiveness on slow connections
-        if (dataChannel.bufferedAmount > 4 * 1024 * 1024) {
-            await waitForBuffer();
-        }
-
         try {
+            // Efficient Backpressure: Wait if buffer is full (MAX 8MB)
+            if (dataChannel.bufferedAmount > 8 * 1024 * 1024) {
+                await new Promise(resolve => {
+                    dataChannel.onbufferedamountlow = () => {
+                        dataChannel.onbufferedamountlow = null;
+                        resolve();
+                    };
+                });
+            }
+
             dataChannel.send(buffer);
             offset += buffer.byteLength;
-            updateProgress(offset, currentFile.size);
+
+            // Throttle UI updates to every 100ms
+            const now = Date.now();
+            if (now - lastUIUpdate > 100 || offset >= currentFile.size) {
+                updateProgress(offset, currentFile.size);
+                lastUIUpdate = now;
+            }
 
             if (offset < currentFile.size) {
-                readSlice(offset);
+                readSlice();
             } else {
                 console.log('Transfer Complete');
+                updateProgress(currentFile.size, currentFile.size); // Ensure 100%
                 ui.transferTitle.textContent = 'Sent Successfully!';
                 showNotification('File sent successfully!', 'success');
                 ui.btnFinish.classList.remove('hidden');
@@ -648,18 +664,12 @@ async function startFileTransfer() {
     };
 
     console.log('Starting transfer of:', currentFile.name, 'Size:', currentFile.size);
-    readSlice(0);
+    readSlice();
 }
 
+// Remove polled waitForBuffer - redundant with event listener
 function waitForBuffer() {
-    return new Promise(resolve => {
-        const interval = setInterval(() => {
-            if (dataChannel.bufferedAmount < 1 * 1024 * 1024) { // Drain to 1MB
-                clearInterval(interval);
-                resolve();
-            }
-        }, 100);
-    });
+    // Legacy placeholder - removed
 }
 
 // Receiver Handling

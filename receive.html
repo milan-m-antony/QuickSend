@@ -718,7 +718,13 @@
                     // Binary
                     receivedChunks.push(data);
                     receivedBytes += data.byteLength;
-                    updateProgress(receivedBytes);
+
+                    // Throttle UI Updates (every 100ms)
+                    const now = Date.now();
+                    if (!window.lastRxUpdate || now - window.lastRxUpdate > 100 || receivedBytes >= totalSize) {
+                        updateProgress(receivedBytes);
+                        window.lastRxUpdate = now;
+                    }
 
                     if (receivedBytes >= totalSize) {
                         finishFileReceive();
@@ -798,53 +804,60 @@
                 // 1. Send Meta
                 dataChannel.send(JSON.stringify({ type: 'meta', name: file.name, size: file.size, mime: file.type }));
 
-                // 2. Send Chunks
-                const CHUNK_SIZE = 16 * 1024;
-                let offset = 0;
-                const reader = new FileReader();
+                // 2. Send Chunks Optimized
+                const CHUNK_SIZE = 64 * 1024; // 64KB
+                dataChannel.bufferedAmountLowThreshold = 64 * 1024;
 
-                reader.onload = async (e) => {
+                const fileReader = new FileReader();
+                let offset = 0;
+                let lastTxUpdate = 0;
+
+                function readSlice() {
+                    if (offset >= file.size) return;
+                    const slice = file.slice(offset, offset + CHUNK_SIZE);
+                    fileReader.readAsArrayBuffer(slice);
+                }
+
+                fileReader.onload = async (e) => {
                     const buffer = e.target.result;
-                    if (dataChannel.bufferedAmount > 4 * 1024 * 1024) {
-                        await waitForBuffer();
-                    }
+                    if (!buffer) return;
+
                     try {
+                        if (dataChannel.bufferedAmount > 8 * 1024 * 1024) {
+                            await new Promise(resolve => {
+                                dataChannel.onbufferedamountlow = () => {
+                                    dataChannel.onbufferedamountlow = null;
+                                    resolve();
+                                };
+                            });
+                        }
+
                         dataChannel.send(buffer);
                         offset += buffer.byteLength;
-                        updateProgress(offset); // Reusing same progress UI
+
+                        // Throttle UI
+                        const now = Date.now();
+                        if (now - lastTxUpdate > 100 || offset >= file.size) {
+                            updateProgress(offset);
+                            lastTxUpdate = now;
+                        }
 
                         if (offset < file.size) {
-                            readSlice(offset);
+                            readSlice();
                         } else {
+                            // Done
+                            ui.status.textContent = "Sent Successfully";
+                            ui.status.classList.add('connected');
+                            ui.progressContainer.style.display = 'none';
                             ui.filename.textContent = "Sent: " + file.name;
-                            setTimeout(() => {
-                                ui.progressContainer.style.display = 'none';
-                                ui.filename.textContent = '';
-                            }, 2000);
                         }
                     } catch (err) {
                         console.error(err);
-                        showError("Send failed");
+                        showError("Transfer failed.");
                     }
                 };
 
-                function readSlice(o) {
-                    const slice = file.slice(o, o + CHUNK_SIZE);
-                    reader.readAsArrayBuffer(slice);
-                }
-
-                function waitForBuffer() {
-                    return new Promise(resolve => {
-                        const i = setInterval(() => {
-                            if (dataChannel.bufferedAmount < 1024 * 1024) {
-                                clearInterval(i);
-                                resolve();
-                            }
-                        }, 100);
-                    });
-                }
-
-                readSlice(0);
+                readSlice();
             }
 
             initReceiver();
