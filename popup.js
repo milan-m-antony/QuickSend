@@ -104,21 +104,33 @@ ui.chatInput.onkeydown = (e) => {
 };
 
 // Paste Button
+// Paste Button
 ui.btnPaste.onclick = async () => {
     try {
-        const text = await navigator.clipboard.readText();
+        // Try direct read (works if permission is granted)
+        let text = '';
+        try {
+            text = await navigator.clipboard.readText();
+        } catch (permErr) {
+            // Fallback: Prompt user (older browsers or strict permissions)
+            console.warn('Clipboard read failed, trying legacy/prompt:', permErr);
+            text = prompt("Paste text to share:");
+        }
+
         if (!text) {
-            showNotification('Clipboard is empty', 'info');
+            if (text !== null) showNotification('Clipboard/Input is empty', 'info');
             return;
         }
+
         if (dataChannel && dataChannel.readyState === 'open') {
             dataChannel.send(JSON.stringify({ type: 'clipboard', text: text }));
-            showNotification('Clipboard text sent!', 'success');
+            showNotification('Text sent!', 'success');
         } else {
             showNotification('Not connected yet', 'error');
         }
     } catch (err) {
-        showNotification('Clipboard access denied', 'error');
+        console.error('Paste Error:', err);
+        showNotification('Clipboard access denied. Try Ctrl+V manual send.', 'error');
     }
 };
 
@@ -618,7 +630,7 @@ function listenToSessionChanges(code) {
 
 // --- File Transfer Logic ---
 
-const CHUNK_SIZE = 64 * 1024; // 64KB for faster transfer speeds
+const CHUNK_SIZE = 256 * 1024; // 256KB for potentially faster transfer speeds
 
 async function startFileTransfer() {
     if (!currentFile || !dataChannel) return;
@@ -644,8 +656,8 @@ async function startFileTransfer() {
     let offset = 0;
     let lastUIUpdate = 0;
 
-    // Set low buffer threshold for event-based backpressure
-    dataChannel.bufferedAmountLowThreshold = 64 * 1024;
+    // Set very low buffer threshold for event-based backpressure with large chunks
+    dataChannel.bufferedAmountLowThreshold = 256 * 1024;
 
     function readSlice() {
         if (offset >= currentFile.size) return;

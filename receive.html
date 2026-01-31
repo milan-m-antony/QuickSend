@@ -626,12 +626,26 @@
 
             ui.btnPaste.onclick = async () => {
                 try {
-                    const text = await navigator.clipboard.readText();
+                    let text = '';
+                    try {
+                        text = await navigator.clipboard.readText();
+                    } catch (permErr) {
+                        // Fallback for permissions
+                        console.warn("Clipboard read failed, attempting prompt", permErr);
+                        text = prompt("Paste text to share:");
+                    }
+
                     if (text && dataChannel && dataChannel.readyState === 'open') {
                         dataChannel.send(JSON.stringify({ type: 'clipboard', text: text }));
                         addChatMessage('sent', 'Shared Clipboard Text');
+                    } else if (text === null) {
+                        // Cancelled prompt
+                    } else {
+                        // Empty or not connected
+                        if (!dataChannel || dataChannel.readyState !== 'open') showError("Not Connected");
+                        else showError("Clipboard/Input is empty");
                     }
-                } catch (e) { console.error(e); }
+                } catch (e) { console.error(e); showError("Clipboard Error"); }
             };
 
             ui.btnChatToggle.onclick = () => {
