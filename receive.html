@@ -502,6 +502,13 @@
             font-weight: bold;
         }
 
+        #sound-toggle {
+            right: 60px;
+            /* Space from info button */
+            font-family: sans-serif;
+            font-style: normal;
+        }
+
         .info-overlay {
             position: fixed;
             top: 0;
@@ -571,6 +578,7 @@
             <img src="icons/icon128.png" alt="Logo">
             <h1>QuickSend</h1>
         </div>
+        <button id="sound-toggle" class="info-btn">🔊</button>
         <button id="info-btn" class="info-btn">i</button>
 
         <div id="status-badge" class="status-badge">Connecting...</div>
@@ -645,6 +653,7 @@
     </div>
 
     <!-- Libs -->
+    <script src="libs/audio.js?v=2.0"></script>
     <script src="libs/supabase.js?v=2.0"></script>
     <script src="config.js?v=2.0"></script>
 
@@ -678,7 +687,17 @@
                 btnPaste: document.getElementById('btn-paste'),
                 infoBtn: document.getElementById('info-btn'),
                 infoOverlay: document.getElementById('info-overlay'),
-                infoClose: document.getElementById('info-close')
+                infoClose: document.getElementById('info-close'),
+                soundToggle: document.getElementById('sound-toggle')
+            };
+
+            // Init Audio
+            AudioEngine.init();
+            ui.soundToggle.textContent = AudioEngine.enabled ? '🔊' : '🔇';
+            ui.soundToggle.onclick = () => {
+                const isOn = AudioEngine.toggle();
+                ui.soundToggle.textContent = isOn ? '🔊' : '🔇';
+                if (isOn) AudioEngine.play('nav');
             };
 
             // Info Handlers
@@ -745,12 +764,24 @@
             ui.btnChatToggle.onclick = () => {
                 ui.chatDrawer.classList.add('open');
                 ui.chatUnread.classList.add('hidden');
+                AudioEngine.play('nav');
             };
-            ui.btnCloseChat.onclick = () => ui.chatDrawer.classList.remove('open');
-            ui.btnSendChat.onclick = sendChat;
-            ui.chatInput.onkeydown = (e) => { if (e.key === 'Enter') sendChat(); }
+            ui.btnCloseChat.onclick = () => {
+                ui.chatDrawer.classList.remove('open');
+                AudioEngine.play('nav');
+            };
+            ui.btnSendChat.onclick = () => {
+                sendChat();
+                // sound handled in sendChat/addChatMessage
+            };
+            ui.chatInput.onkeydown = (e) => {
+                if (e.key === 'Enter') {
+                    sendChat();
+                }
+            }
 
             function showError(msg) {
+                AudioEngine.play('error');
                 ui.error.textContent = msg;
                 ui.error.style.display = 'block';
                 ui.status.textContent = "Error";
@@ -816,6 +847,7 @@
 
             function setupDataChannel(channel) {
                 channel.onopen = () => {
+                    AudioEngine.play('connect');
                     updateStatus("Connected", "connected");
                     ui.btnSendFile.classList.remove('disabled');
                     ui.btnPaste.classList.remove('disabled');
@@ -835,6 +867,7 @@
                         receivedBytes = 0;
                         receivedChunks = [];
                         startTime = Date.now();
+                        AudioEngine.play('receive');
 
                         ui.filename.textContent = "Receiving: " + incomingFileName;
                         ui.filename.classList.remove('hidden');
@@ -844,6 +877,7 @@
                         addChatMessage('received', msg.text);
                     } else if (msg.type === 'clipboard') {
                         navigator.clipboard.writeText(msg.text).then(() => {
+                            AudioEngine.play('copied');
                             addChatMessage('received', '📋 Copied to Clipboard!');
                         });
                     }
@@ -900,6 +934,7 @@
                 // Reset Progress UI
                 ui.progressContainer.style.display = 'none';
                 ui.filename.textContent = '';
+                AudioEngine.play('success');
             }
 
             // PWA Registration
@@ -941,8 +976,13 @@
                 ui.chatMessages.appendChild(div);
                 ui.chatMessages.scrollTop = ui.chatMessages.scrollHeight;
 
-                if (dir === 'received' && !ui.chatDrawer.classList.contains('open')) {
-                    ui.chatUnread.classList.remove('hidden');
+                if (dir === 'received') {
+                    AudioEngine.play('message');
+                    if (!ui.chatDrawer.classList.contains('open')) {
+                        ui.chatUnread.classList.remove('hidden');
+                    }
+                } else {
+                    AudioEngine.play('message');
                 }
             }
 

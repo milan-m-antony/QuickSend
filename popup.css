@@ -132,17 +132,20 @@ header {
 }
 
 .logo img {
-  width: 50px;
-  /* Scaled down slightly from 60px to prevent overcrowding */
-  height: 50px;
+  width: 38px;
+  height: 38px;
   filter: drop-shadow(0 0 10px var(--accent-glow));
   transition: transform 0.3s ease;
+}
+
+#sound-toggle {
+  margin-left: 10px;
 }
 
 .header-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .info-btn {

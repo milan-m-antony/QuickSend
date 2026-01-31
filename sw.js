@@ -1,10 +1,12 @@
-const CACHE_NAME = 'quicksend-v1';
+const CACHE_NAME = 'quicksend-v2';
 const ASSETS = [
     './receive.html',
     './webapp.webmanifest',
     './icons/icon128.png',
     './config.js',
-    './libs/supabase.js'
+    './libs/supabase.js',
+    './libs/audio.js',
+    './libs/qrcode.js'
 ];
 
 self.addEventListener('install', (e) => {

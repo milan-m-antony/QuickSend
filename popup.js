@@ -60,16 +60,18 @@ const ui = {
     chatMessages: document.getElementById('chat-messages'),
     chatInput: document.getElementById('chat-input'),
     btnSendChat: document.getElementById('btn-send-chat'),
-    btnPaste: document.getElementById('btn-paste'), // New Paste Button
+    btnPaste: document.getElementById('btn-paste'),
     receivedFilesContainer: document.getElementById('received-files-container'),
     notification: document.getElementById('notification'),
     codeBox: document.querySelector('.code-box'),
+    qrCodeContainer: document.getElementById('qrcode-container'), // Restored
     qrcode: document.getElementById('qrcode'),
     infoToggle: document.getElementById('info-toggle'),
     infoOverlay: document.getElementById('info-overlay'),
     infoClose: document.getElementById('info-close'),
     soundToggle: document.getElementById('sound-toggle')
 };
+
 
 // Auto-Wakeup Server
 (async function wakeUpServer() {
@@ -86,8 +88,6 @@ const ui = {
     }
 })();
 
-// Init Audio
-
 
 // Init Audio
 AudioEngine.init();
@@ -99,11 +99,11 @@ let receivedBlobUrls = []; // Track all URLs for cleanup
 // --- Event Listeners ---
 
 // Mode Selection
-ui.btnSendMode.onclick = () => showView('sender');
-ui.btnReceiveMode.onclick = () => showView('receiver');
-ui.btnCancelSend.onclick = resetApp;
-ui.btnCancelReceive.onclick = resetApp;
-ui.btnFinish.onclick = resetApp;
+ui.btnSendMode.onclick = () => { AudioEngine.play('nav'); showView('sender'); };
+ui.btnReceiveMode.onclick = () => { AudioEngine.play('nav'); showView('receiver'); };
+ui.btnCancelSend.onclick = () => { AudioEngine.play('nav'); resetApp(); };
+ui.btnCancelReceive.onclick = () => { AudioEngine.play('nav'); resetApp(); };
+ui.btnFinish.onclick = () => { AudioEngine.play('nav'); resetApp(); };
 
 // ui.btnDownloadReceived is removed in favor of multi-file list
 
@@ -191,6 +191,7 @@ function addChatMessage(dir, text) {
     ui.chatMessages.scrollTop = ui.chatMessages.scrollHeight;
 
     if (dir === 'received') {
+        AudioEngine.play('message');
         if (!ui.chatDrawer.classList.contains('open')) {
             ui.chatUnread.classList.remove('hidden');
         }
@@ -200,6 +201,10 @@ function addChatMessage(dir, text) {
 }
 
 function showNotification(text, type = 'info', duration = 3000) {
+    if (type === 'error') AudioEngine.play('error');
+    else if (type === 'success') { } // Handled elsewhere or could play notify
+    else AudioEngine.play('notify');
+
     ui.notification.textContent = text;
     ui.notification.className = `notification ${type}`;
     ui.notification.classList.remove('hidden');
@@ -211,6 +216,7 @@ function showNotification(text, type = 'info', duration = 3000) {
 // Copy Code
 ui.btnCopy.onclick = () => {
     navigator.clipboard.writeText(sessionCode).then(() => {
+        AudioEngine.play('copied');
         ui.btnCopy.classList.add('copied');
         showNotification('Code copied to clipboard!', 'info', 2000);
         setTimeout(() => {
@@ -673,6 +679,7 @@ async function startFileTransfer() {
     ui.btnSendMore.classList.add('hidden');
     resetProgressUI();
     startTime = Date.now();
+    AudioEngine.play('send');
 
     // 1. Send Meta Data
     const meta = {
@@ -783,6 +790,7 @@ function handleMessage(event) {
             ui.btnSendMore.classList.add('hidden');
             resetProgressUI();
             startTime = Date.now();
+            AudioEngine.play('receive');
         } else if (msg.type === 'chat') {
             addChatMessage('received', msg.text);
         } else if (msg.type === 'clipboard') {
@@ -842,6 +850,7 @@ function handleMessage(event) {
             ui.receivedFilesContainer.scrollTop = ui.receivedFilesContainer.scrollHeight;
 
             ui.transferTitle.textContent = 'Transfer Complete!';
+            AudioEngine.play('success');
             ui.btnFinish.classList.remove('hidden');
             ui.btnSendMore.classList.remove('hidden');
             showNotification(`Finished receiving ${name}`, 'success');
