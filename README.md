@@ -7,11 +7,12 @@
 ## 🌟 Key Features
 
 - **P2P Direct Transfer**: Files move directly between devices. Maximum speed, zero server storage, total privacy.
+- **Batch Sharing**: Select multiple files or drag-and-drop folders to send them sequentially in one go.
+- **Universal Clipboard**: "Copy" on PC, "Paste" on Phone. Instantly sync text, URLs, and passwords between devices.
+- **Mobile PWA**: The receiver is now a full Progressive Web App. Install it on your phone for full-screen, offline-capable sharing.
 - **Magic QR Connect**: Scan a QR code with your phone to start a download instantly—no installation required on the receiving device.
-- **6-Digit Secure Pairing**: Simple, memorable codes for manual device linking.
 - **Bi-Directional Chat**: Communicate with the peer during the transfer through an integrated, glassmorphic chat drawer.
 - **Modern UI/UX**: Ultra-modern dark theme with glassmorphism, fluid animations, and a sleek "Outfit" typography.
-- **Distributed Janitor**: Automatic signaling session cleanup to keep the backend lean and fast.
 
 ---
 
