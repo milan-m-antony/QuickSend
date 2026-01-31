@@ -8,6 +8,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="manifest" href="webapp.webmanifest">
+    <meta name="theme-color" content="#0c0e14">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <style>
         :root {
             --bg-color: #0c0e14;
@@ -521,7 +525,11 @@
 
         <!-- Actions -->
         <div class="actions">
-            <button id="btn-send-file" class="primary-btn disabled">Send File</button>
+            <div style="display:flex; gap:10px; width:100%;">
+                <button id="btn-send-file" class="primary-btn disabled" style="flex:1;">Send File</button>
+                <button id="btn-paste" class="primary-btn disabled"
+                    style="flex:1; background: var(--accent-purple);">Paste</button>
+            </div>
             <input type="file" id="file-input" hidden>
         </div>
 
@@ -577,8 +585,10 @@
                 chatMessages: document.getElementById('chat-messages'),
                 chatInput: document.getElementById('chat-input'),
                 btnSendChat: document.getElementById('btn-send-chat'),
+                btnSendChat: document.getElementById('btn-send-chat'),
                 btnCloseChat: document.getElementById('btn-close-chat'),
-                chatUnread: document.getElementById('chat-unread')
+                chatUnread: document.getElementById('chat-unread'),
+                btnPaste: document.getElementById('btn-paste')
             };
 
             if (!code) {
@@ -612,6 +622,16 @@
                 const file = e.target.files[0];
                 if (file) startFileTransfer(file);
                 ui.fileInput.value = ''; // Reset
+            };
+
+            ui.btnPaste.onclick = async () => {
+                try {
+                    const text = await navigator.clipboard.readText();
+                    if (text && dataChannel && dataChannel.readyState === 'open') {
+                        dataChannel.send(JSON.stringify({ type: 'clipboard', text: text }));
+                        addChatMessage('sent', 'Shared Clipboard Text');
+                    }
+                } catch (e) { console.error(e); }
             };
 
             ui.btnChatToggle.onclick = () => {
@@ -690,6 +710,7 @@
                 channel.onopen = () => {
                     updateStatus("Connected", "connected");
                     ui.btnSendFile.classList.remove('disabled');
+                    ui.btnPaste.classList.remove('disabled');
                     ui.btnChatToggle.classList.remove('hidden');
                 };
                 channel.onmessage = handleMessage;
@@ -713,6 +734,10 @@
                         updateProgress(0);
                     } else if (msg.type === 'chat') {
                         addChatMessage('received', msg.text);
+                    } else if (msg.type === 'clipboard') {
+                        navigator.clipboard.writeText(msg.text).then(() => {
+                            addChatMessage('received', '📋 Copied to Clipboard!');
+                        });
                     }
                 } else {
                     // Binary
@@ -737,13 +762,28 @@
                 const url = URL.createObjectURL(blob);
                 receivedBlobUrls.push(url);
 
+                // Media Preview Logic
+                let previewHtml = '';
+                const mime = blob.type;
+
+                if (mime.startsWith('image/')) {
+                    previewHtml = `<img src="${url}" style="width: 40px; height: 40px; border-radius: 8px; object-fit: cover; margin-right: 12px; border: 1px solid rgba(255,255,255,0.1);">`;
+                } else if (mime.startsWith('video/')) {
+                    previewHtml = `<div style="width: 40px; height: 40px; background: rgba(0,0,0,0.3); border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-right: 12px; border: 1px solid rgba(255,255,255,0.1);">▶️</div>`;
+                } else {
+                    previewHtml = `<div style="width: 40px; height: 40px; background: rgba(255,255,255,0.05); border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-right: 12px;">📄</div>`;
+                }
+
                 // Add to list
                 const div = document.createElement('div');
                 div.className = 'file-item';
                 div.innerHTML = `
-                    <div class="file-info">
-                        <div class="file-name">${incomingFileName}</div>
-                        <div class="file-size">${(totalSize / 1024 / 1024).toFixed(2)} MB</div>
+                    <div style="display:flex; align-items:center; overflow:hidden; flex:1;">
+                        ${previewHtml}
+                        <div class="file-info" style="min-width:0;">
+                            <div class="file-name">${incomingFileName}</div>
+                            <div class="file-size">${(totalSize / 1024 / 1024).toFixed(2)} MB</div>
+                        </div>
                     </div>
                     <a href="${url}" download="${incomingFileName}" class="file-action-btn">Download</a>
                 `;
@@ -752,6 +792,14 @@
                 // Reset Progress UI
                 ui.progressContainer.style.display = 'none';
                 ui.filename.textContent = '';
+            }
+
+            // PWA Registration
+            if ('serviceWorker' in navigator) {
+                // Wait for load to not block critical rendering
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('sw.js');
+                });
             }
 
             function updateProgress(bytes) {

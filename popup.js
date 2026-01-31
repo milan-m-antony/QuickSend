@@ -15,6 +15,7 @@ let peerConnection = null;
 let dataChannel = null;
 let sessionCode = null;
 let currentFile = null;
+let filesQueue = []; // Queue for multi-file sending
 let receivedChunks = [];
 let receivedBytes = 0;
 let fileSize = 0;
@@ -59,6 +60,7 @@ const ui = {
     chatMessages: document.getElementById('chat-messages'),
     chatInput: document.getElementById('chat-input'),
     btnSendChat: document.getElementById('btn-send-chat'),
+    btnPaste: document.getElementById('btn-paste'), // New Paste Button
     receivedFilesContainer: document.getElementById('received-files-container'),
     notification: document.getElementById('notification'),
     codeBox: document.querySelector('.code-box'),
@@ -99,6 +101,25 @@ ui.chatToggle.onclick = () => {
 ui.btnSendChat.onclick = sendChatMessage;
 ui.chatInput.onkeydown = (e) => {
     if (e.key === 'Enter') sendChatMessage();
+};
+
+// Paste Button
+ui.btnPaste.onclick = async () => {
+    try {
+        const text = await navigator.clipboard.readText();
+        if (!text) {
+            showNotification('Clipboard is empty', 'info');
+            return;
+        }
+        if (dataChannel && dataChannel.readyState === 'open') {
+            dataChannel.send(JSON.stringify({ type: 'clipboard', text: text }));
+            showNotification('Clipboard text sent!', 'success');
+        } else {
+            showNotification('Not connected yet', 'error');
+        }
+    } catch (err) {
+        showNotification('Clipboard access denied', 'error');
+    }
 };
 
 // Info Overlay
@@ -229,25 +250,42 @@ function resetApp() {
 // ui.dropArea.onclick = () => ui.fileInput.click(); 
 
 ui.fileInput.onchange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
 
-    currentFile = file;
-    ui.fileName.textContent = file.name + ` (${formatSize(file.size)})`;
-    document.body.classList.add('compact-header'); // Compact layout for active session
-    ui.dropArea.classList.add('file-selected'); // Compact layout for selected file
+    // Add to queue
+    filesQueue.push(...files);
 
-    if (file.size > 200 * 1024 * 1024) {
-        showNotification("Warning: Large file detected (200MB+). Keep devices online.", 'info', 5000);
-    }
+    // Update UI
+    updateTransferQueueUI();
+    document.body.classList.add('compact-header');
+    ui.dropArea.classList.add('file-selected');
 
-    // If already connected, just start transfer
+    // Start if connected
     if (peerConnection && peerConnection.connectionState === 'connected') {
-        startFileTransfer();
+        processQueue(); // Start sending
     } else {
         await startSenderSession();
     }
 };
+
+function updateTransferQueueUI() {
+    if (filesQueue.length === 0 && !currentFile) {
+        ui.fileName.textContent = 'Click to select files';
+        return;
+    }
+    const count = filesQueue.length + (currentFile ? 1 : 0);
+    const firstName = currentFile ? currentFile.name : filesQueue[0].name;
+    ui.fileName.textContent = count > 1 ? `${count} files selected` : `${firstName} (${formatSize((currentFile || filesQueue[0]).size)})`;
+}
+
+async function processQueue() {
+    if (currentFile || filesQueue.length === 0) return; // Busy or Empty
+
+    currentFile = filesQueue.shift();
+    updateTransferQueueUI();
+    await startFileTransfer();
+}
 
 async function startSenderSession() {
     // Close any existing connection properly before starting a new one
@@ -516,8 +554,8 @@ function setupDataChannel(channel) {
         ui.btnSendMore.classList.remove('hidden');
         resetProgressUI();
 
-        if (role === 'sender' && currentFile) {
-            startFileTransfer();
+        if (role === 'sender' && (currentFile || filesQueue.length > 0)) {
+            processQueue();
         }
     };
 
@@ -645,10 +683,20 @@ async function startFileTransfer() {
             } else {
                 console.log('Transfer Complete');
                 updateProgress(currentFile.size, currentFile.size); // Ensure 100%
-                ui.transferTitle.textContent = 'Sent Successfully!';
-                showNotification('File sent successfully!', 'success');
-                ui.btnFinish.classList.remove('hidden');
-                ui.btnSendMore.classList.remove('hidden');
+
+                // Done with this file
+                currentFile = null;
+
+                // Check Queue
+                if (filesQueue.length > 0) {
+                    ui.transferTitle.textContent = `Sending next (${filesQueue.length} left)...`;
+                    setTimeout(processQueue, 500); // Small delay
+                } else {
+                    ui.transferTitle.textContent = 'All Files Sent!';
+                    showNotification('Batch transfer complete!', 'success');
+                    ui.btnFinish.classList.remove('hidden');
+                    ui.btnSendMore.classList.remove('hidden');
+                }
             }
         } catch (err) {
             console.error('Transfer Error:', err);
@@ -692,6 +740,10 @@ function handleMessage(event) {
             startTime = Date.now();
         } else if (msg.type === 'chat') {
             addChatMessage('received', msg.text);
+        } else if (msg.type === 'clipboard') {
+            navigator.clipboard.writeText(msg.text).then(() => {
+                showNotification('📋 Text copied from peer!', 'success');
+            });
         }
     } else {
         // Binary Data (Chunk)
@@ -710,12 +762,26 @@ function handleMessage(event) {
             const name = fileName; // Capture current name
             const size = formatSize(fileSize);
 
+            // Media Preview
+            let previewHtml = '';
+            const mime = blob.type;
+            if (mime.startsWith('image/')) {
+                previewHtml = `<img src="${blobUrl}" style="width: 40px; height: 40px; border-radius: 8px; object-fit: cover; margin-right: 12px; border: 1px solid rgba(255,255,255,0.1);">`;
+            } else if (mime.startsWith('video/')) {
+                previewHtml = `<div style="width: 40px; height: 40px; background: rgba(0,0,0,0.3); border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-right: 12px; border: 1px solid rgba(255,255,255,0.1);">▶️</div>`;
+            } else {
+                previewHtml = `<div style="width: 40px; height: 40px; background: rgba(255,255,255,0.05); border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-right: 12px;">📄</div>`;
+            }
+
             const fileItem = document.createElement('div');
             fileItem.className = 'file-item';
             fileItem.innerHTML = `
-                <div class="file-item-info">
-                    <div class="file-item-name" title="${name}">${name}</div>
-                    <div class="file-item-size">${size}</div>
+                <div style="display:flex; align-items:center; overflow:hidden; flex:1;">
+                    ${previewHtml}
+                    <div class="file-item-info" style="min-width:0;">
+                        <div class="file-item-name" title="${name}">${name}</div>
+                        <div class="file-item-size">${size}</div>
+                    </div>
                 </div>
                 <button class="download-link-btn">Download</button>
             `;
