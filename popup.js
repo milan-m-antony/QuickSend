@@ -64,15 +64,30 @@ const ui = {
     receivedFilesContainer: document.getElementById('received-files-container'),
     notification: document.getElementById('notification'),
     codeBox: document.querySelector('.code-box'),
-    qrCodeContainer: document.getElementById('qrcode-container'),
     qrcode: document.getElementById('qrcode'),
-    infoToggle: document.getElementById('info-toggle'),
-    infoOverlay: document.getElementById('info-overlay'),
     infoToggle: document.getElementById('info-toggle'),
     infoOverlay: document.getElementById('info-overlay'),
     infoClose: document.getElementById('info-close'),
     soundToggle: document.getElementById('sound-toggle')
 };
+
+// Auto-Wakeup Server
+(async function wakeUpServer() {
+    ui.status.textContent = 'Connecting...';
+    try {
+        // Lightweight ping to wake up Supabase free tier
+        // Using a non-existent ID just to trigger a network request is enough
+        await supabase.from('sessions').select('id').limit(1).maybeSingle();
+        ui.status.textContent = 'Ready';
+        ui.status.style.opacity = '1';
+    } catch (e) {
+        console.warn('Wakeup failed', e); // Silent fail, might be offline
+        ui.status.textContent = 'Ready'; // Fallback
+    }
+})();
+
+// Init Audio
+
 
 // Init Audio
 AudioEngine.init();
