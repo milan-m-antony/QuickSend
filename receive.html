@@ -483,6 +483,77 @@
             margin-top: 10px;
         }
 
+        .info-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--glass-border);
+            color: var(--text-secondary);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: serif;
+            font-style: italic;
+            font-weight: bold;
+        }
+
+        .info-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(12, 14, 20, 0.95);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .info-content {
+            background: #1e293b;
+            padding: 30px;
+            border-radius: 20px;
+            max-width: 400px;
+            width: 100%;
+            position: relative;
+            border: 1px solid var(--glass-border);
+        }
+
+        .info-content h2 {
+            color: var(--accent);
+            margin-bottom: 20px;
+        }
+
+        .info-content ul {
+            text-align: left;
+            margin-bottom: 20px;
+            padding-left: 20px;
+            color: var(--text-primary);
+        }
+
+        .info-content li {
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 24px;
+            cursor: pointer;
+        }
+
         .hidden {
             display: none !important;
         }
@@ -500,6 +571,7 @@
             <img src="icons/icon128.png" alt="Logo">
             <h1>QuickSend</h1>
         </div>
+        <button id="info-btn" class="info-btn">i</button>
 
         <div id="status-badge" class="status-badge">Connecting...</div>
 
@@ -535,6 +607,20 @@
 
         <p style="font-size: 12px; color: var(--text-secondary); margin-top: 10px;">Keep browser open during transfer.
         </p>
+
+        <div id="info-overlay" class="info-overlay hidden">
+            <div class="info-content">
+                <button id="info-close" class="close-btn">&times;</button>
+                <h2>How to Use</h2>
+                <ul>
+                    <li><strong>Connect:</strong> You are linked via the secure code.</li>
+                    <li><strong>Send:</strong> Tap "Send File" to upload photos/videos.</li>
+                    <li><strong>Paste:</strong> Tap "Paste" to share clipboard text.</li>
+                    <li><strong>Save:</strong> Click "Download" on received items.</li>
+                    <li><strong>App:</strong> Add to Home Screen for fullscreen mode.</li>
+                </ul>
+            </div>
+        </div>
     </div>
 
     <!-- Chat Floating Button -->
@@ -588,8 +674,16 @@
                 btnSendChat: document.getElementById('btn-send-chat'),
                 btnCloseChat: document.getElementById('btn-close-chat'),
                 chatUnread: document.getElementById('chat-unread'),
-                btnPaste: document.getElementById('btn-paste')
+                chatUnread: document.getElementById('chat-unread'),
+                btnPaste: document.getElementById('btn-paste'),
+                infoBtn: document.getElementById('info-btn'),
+                infoOverlay: document.getElementById('info-overlay'),
+                infoClose: document.getElementById('info-close')
             };
+
+            // Info Handlers
+            ui.infoBtn.onclick = () => ui.infoOverlay.classList.remove('hidden');
+            ui.infoClose.onclick = () => ui.infoOverlay.classList.add('hidden');
 
             if (!code) {
                 showError("No code found. Scan QR again.");
