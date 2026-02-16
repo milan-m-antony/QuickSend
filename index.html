@@ -880,7 +880,7 @@
                 <button id="btn-paste" class="primary-btn disabled"
                     style="flex:1; background: var(--accent-purple);">Paste</button>
             </div>
-            <input type="file" id="file-input" hidden>
+            <input type="file" id="file-input" hidden multiple>
         </div>
 
         <p style="font-size: 12px; color: var(--text-secondary); margin-top: 10px;">Keep browser open during
@@ -1103,10 +1103,14 @@
             }
 
             ui.btnSendFile.onclick = () => ui.fileInput.click();
-            ui.fileInput.onchange = (e) => {
-                const file = e.target.files[0];
-                console.log("File Selected:", file);
-                if (file) startFileTransfer(file);
+            ui.fileInput.onchange = async (e) => {
+                const files = e.target.files;
+                if (!files || files.length === 0) return;
+
+                console.log("Files Selected:", files.length);
+                for (let i = 0; i < files.length; i++) {
+                    await startFileTransfer(files[i]);
+                }
                 ui.fileInput.value = ''; // Reset
             };
 
