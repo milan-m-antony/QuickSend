@@ -10,6 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="manifest" href="webapp.webmanifest">
     <meta name="theme-color" content="#0c0e14">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <style>
@@ -957,7 +958,7 @@
             };
             const METERED_API_KEY = "7901977ec1ad39f11335a956e16f677d8cb7";
             const METERED_DOMAIN = "milanmantony.metered.live";
-            
+
             // Promise that resolves when TURN is ready (or failed/timeout)
             const turnReadyPromise = (async () => {
                 try {
@@ -965,7 +966,7 @@
                     const servers = await res.json();
                     rtcConfig.iceServers = [...rtcConfig.iceServers, ...servers];
                     console.log("TURN Loaded (Mobile)");
-                } catch(e) { console.warn("TURN Fetch Failed", e); }
+                } catch (e) { console.warn("TURN Fetch Failed", e); }
             })();
 
             // Init Audio
@@ -1334,47 +1335,52 @@
             });
 
             function handleMessage(event) {
-                const data = event.data;
-                if (typeof data === 'string') {
-                    const msg = JSON.parse(data);
-                    if (msg.type === 'ping') return; // Ignore heartbeats
-                    if (msg.type === 'meta') {
-                        // Start Receive
-                        incomingFileName = msg.name;
-                        totalSize = msg.size;
-                        receivedBytes = 0;
-                        receivedChunks = [];
-                        startTime = Date.now();
-                        AudioEngine.play('receive');
+                try {
+                    const data = event.data;
+                    if (typeof data === 'string') {
+                        const msg = JSON.parse(data);
+                        if (msg.type === 'ping') return; // Ignore heartbeats
+                        if (msg.type === 'meta') {
+                            console.log("RX Meta:", msg);
+                            // Start Receive
+                            incomingFileName = msg.name;
+                            totalSize = msg.size;
+                            receivedBytes = 0;
+                            receivedChunks = [];
+                            startTime = Date.now();
+                            try { AudioEngine.play('receive'); } catch (e) { console.warn("Audio fail", e); }
 
-                        ui.filename.textContent = "Receiving: " + incomingFileName;
-                        ui.filename.classList.remove('hidden');
-                        ui.progressContainer.style.display = 'block';
-                        updateProgress(0);
-                    } else if (msg.type === 'chat') {
-                        addChatMessage('received', msg.text);
-                    } else if (msg.type === 'clipboard') {
-                        navigator.clipboard.writeText(msg.text).then(() => {
-                            AudioEngine.play('copied');
-                            addChatMessage('received', '📋 Copied to Clipboard!');
-                        });
-                    }
-                } else {
-                    // Binary
-                    receivedChunks.push(data);
-                    receivedBytes += data.byteLength;
+                            if (ui.filename) {
+                                ui.filename.textContent = "Receiving: " + incomingFileName;
+                                ui.filename.classList.remove('hidden');
+                            }
+                            if (ui.progressContainer) ui.progressContainer.style.display = 'block';
+                            updateProgress(0);
+                        } else if (msg.type === 'chat') {
+                            addChatMessage('received', msg.text);
+                        } else if (msg.type === 'clipboard') {
+                            navigator.clipboard.writeText(msg.text).then(() => {
+                                try { AudioEngine.play('copied'); } catch (e) { }
+                                addChatMessage('received', '📋 Copied to Clipboard!');
+                            });
+                        }
+                    } else {
+                        // Binary
+                        receivedChunks.push(data);
+                        receivedBytes += data.byteLength;
 
-                    // Throttle UI Updates (every 100ms)
-                    const now = Date.now();
-                    if (!window.lastRxUpdate || now - window.lastRxUpdate > 100 || receivedBytes >= totalSize) {
-                        updateProgress(receivedBytes);
-                        window.lastRxUpdate = now;
-                    }
+                        // Throttle UI Updates (every 100ms)
+                        const now = Date.now();
+                        if (!window.lastRxUpdate || now - window.lastRxUpdate > 100 || receivedBytes >= totalSize) {
+                            updateProgress(receivedBytes);
+                            window.lastRxUpdate = now;
+                        }
 
-                    if (receivedBytes >= totalSize) {
-                        finishFileReceive();
+                        if (receivedBytes >= totalSize) {
+                            finishFileReceive();
+                        }
                     }
-                }
+                } catch (e) { console.error("Msg Error", e); }
             }
 
             function finishFileReceive() {
