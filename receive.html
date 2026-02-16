@@ -1036,6 +1036,11 @@
             let dataChannel;
             let currentFile = null;
             let receivedChunks = [];
+            let receivedBytes = 0;
+            let totalSize = 0;
+            let startTime = 0;
+            let incomingFileName = "";
+            let incomingMime = "";
             let receivedBlobUrls = [];
             let supabase;
             let sessionCode = null;
@@ -1357,6 +1362,7 @@
                             // Start Receive
                             incomingFileName = msg.name;
                             totalSize = msg.size;
+                            incomingMime = msg.mime;
                             receivedBytes = 0;
                             receivedChunks = [];
                             startTime = Date.now();
@@ -1398,7 +1404,7 @@
             function finishFileReceive() {
                 try {
                     if (!totalSize || totalSize === 0) return; // Guard
-                    const blob = new Blob(receivedChunks);
+                    const blob = new Blob(receivedChunks, { type: incomingMime });
                     const url = URL.createObjectURL(blob);
                     receivedBlobUrls.push(url);
 
