@@ -651,6 +651,7 @@
             border-radius: 12px;
             display: none;
             margin-top: 10px;
+            cursor: pointer;
         }
 
         .info-btn {
@@ -1163,11 +1164,29 @@
                 ui.error.style.display = 'block';
                 ui.status.textContent = "Error";
                 ui.status.classList.add('error');
+
+                // Auto-hide after 8s if not critical
+                setTimeout(() => {
+                    if (ui.error.textContent === msg) {
+                        ui.error.style.display = 'none';
+                    }
+                }, 8000);
             }
+
+            // Click to dismiss error
+            ui.error.onclick = () => {
+                ui.error.style.display = 'none';
+            };
 
             function updateStatus(text, type) {
                 ui.status.textContent = text;
                 ui.status.className = 'status-badge ' + (type || '');
+                // Clear error UI on any status update that isn't an error
+                if (type !== 'error') {
+                    ui.error.style.display = 'none';
+                    ui.error.textContent = '';
+                    ui.status.classList.remove('error');
+                }
             }
 
             // --- P2P Connection ---
@@ -1235,12 +1254,14 @@
                             }
                         })
                         .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'sessions', filter: `code=eq.${targetCode}` }, () => {
-                            // Only act if the data channel isn't open yet
-                            if (!dataChannel || dataChannel.readyState !== 'open') {
-                                updateStatus("Peer Disconnected", 'error');
-                                ui.btnSendFile.classList.add('disabled');
-                                ui.btnPaste.classList.add('disabled');
-                            }
+                            // Delay slightly to avoid race with channel open
+                            setTimeout(() => {
+                                if (!dataChannel || dataChannel.readyState !== 'open') {
+                                    updateStatus("Peer Disconnected", 'error');
+                                    ui.btnSendFile.classList.add('disabled');
+                                    ui.btnPaste.classList.add('disabled');
+                                }
+                            }, 500);
                         })
                         .subscribe();
                     activeSubscription = channel;
@@ -1361,12 +1382,14 @@
                             }
                         })
                         .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'sessions', filter: `code=eq.${sessionCode}` }, () => {
-                            // Only act if the data channel isn't open yet
-                            if (!dataChannel || dataChannel.readyState !== 'open') {
-                                updateStatus("Peer Disconnected", 'error');
-                                ui.btnSendFile.classList.add('disabled');
-                                ui.btnPaste.classList.add('disabled');
-                            }
+                            // Delay slightly to avoid race with channel open
+                            setTimeout(() => {
+                                if (!dataChannel || dataChannel.readyState !== 'open') {
+                                    updateStatus("Peer Disconnected", 'error');
+                                    ui.btnSendFile.classList.add('disabled');
+                                    ui.btnPaste.classList.add('disabled');
+                                }
+                            }, 500);
                         })
                         .subscribe();
                     activeSubscription = channel;
