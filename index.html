@@ -1,0 +1,1548 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>QuickSend - Mobile Client</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="manifest" href="webapp.webmanifest">
+    <meta name="theme-color" content="#0c0e14">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <style>
+        :root {
+            --bg-color: #0c0e14;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent: #00f2ff;
+            --accent-purple: #a855f7;
+            --accent-glow: rgba(0, 242, 255, 0.4);
+            --success: #10b981;
+            --error: #ef4444;
+            --glass-bg: rgba(13, 17, 28, 0.85);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --radius-xl: 24px;
+            --radius-lg: 16px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: var(--bg-color);
+            color: var(--text-primary);
+            font-family: 'Outfit', sans-serif;
+            min-height: 100vh;
+            /* Use dvh for mobile to handle browser toolbars better */
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+            overflow-y: auto;
+            position: relative;
+            padding: 20px 0;
+        }
+
+        /* Premium Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent);
+        }
+
+        /* Animated Background Blobs */
+        .bg-blobs {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.4;
+            animation: float 15s infinite ease-in-out;
+        }
+
+        .blob-1 {
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, var(--accent), #0077ff);
+            top: -10%;
+            left: -10%;
+        }
+
+        .blob-2 {
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, var(--accent-purple), #7e22ce);
+            bottom: -10%;
+            right: -10%;
+            animation-delay: -5s;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            33% {
+                transform: translate(30px, -50px) scale(1.1);
+            }
+
+            66% {
+                transform: translate(-20px, 20px) scale(0.9);
+            }
+        }
+
+        .container {
+            width: 90%;
+            max-width: 450px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-xl);
+            padding: 30px 24px;
+            text-align: center;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: slideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            /* Remove fixed max-height to allow content to grow if needed, 
+               body scroll will handle it */
+            position: relative;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(40px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            width: 100%;
+        }
+
+        .view {
+            width: 100%;
+            transition: all 0.4s ease;
+        }
+
+        .view.hidden {
+            display: none;
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        .card-btn {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+            color: white;
+            outline: none;
+        }
+
+        .card-btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .card-btn:active {
+            transform: scale(0.97) translateY(0);
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--accent);
+        }
+
+        .card-btn .icon {
+            font-size: 32px;
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card-btn h3 {
+            font-size: 18px;
+            margin-bottom: 4px;
+        }
+
+        .card-btn p {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        /* Sender View Styles */
+        .file-drop-area {
+            border: 2px dashed var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .file-drop-area:active {
+            border-color: var(--accent);
+            background: rgba(0, 242, 255, 0.05);
+        }
+
+        .file-icon {
+            font-size: 48px;
+        }
+
+        .code-box {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--accent);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            margin: 20px 0;
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: 5px;
+            color: var(--accent);
+            text-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        #qrcode {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            display: inline-block;
+            margin-top: 10px;
+        }
+
+        .secondary-btn {
+            background: transparent;
+            border: 1px solid var(--glass-border);
+            color: var(--text-secondary);
+            width: 100%;
+            padding: 12px;
+            border-radius: var(--radius-lg);
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .secondary-btn:active {
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo img {
+            width: 40px;
+            height: 40px;
+            filter: drop-shadow(0 0 10px var(--accent-glow));
+        }
+
+        .logo h1 {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent), var(--accent-purple));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Status & Progress */
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 99px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .status-badge.connected {
+            color: var(--success);
+            border-color: rgba(16, 185, 129, 0.3);
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .status-badge.error {
+            color: var(--error);
+            border-color: rgba(239, 68, 68, 0.3);
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .progress-container {
+            margin: 10px 0;
+            display: none;
+        }
+
+        .progress-wrapper {
+            background: rgba(255, 255, 255, 0.05);
+            height: 8px;
+            border-radius: 99px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(to right, var(--accent), var(--accent-purple));
+            box-shadow: 0 0 10px var(--accent-glow);
+            transition: width 0.2s linear;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .current-filename {
+            font-size: 14px;
+            margin-bottom: 10px;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Received Files List */
+        .files-list {
+            max-height: 150px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 10px 0;
+            padding-right: 5px;
+        }
+
+        .file-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-align: left;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .file-info {
+            overflow: hidden;
+            margin-right: 10px;
+        }
+
+        .file-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 2px;
+        }
+
+        .file-size {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .file-action-btn {
+            background: rgba(0, 242, 255, 0.1);
+            color: var(--accent);
+            border: none;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        /* Buttons */
+        .primary-btn {
+            display: block;
+            width: 100%;
+            padding: 16px;
+            border-radius: var(--radius-lg);
+            border: none;
+            background: linear-gradient(135deg, var(--accent), var(--accent-purple));
+            color: #0c0e14;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s;
+            box-shadow: 0 4px 15px rgba(0, 242, 255, 0.3);
+        }
+
+        .primary-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 242, 255, 0.4);
+        }
+
+        .primary-btn:active {
+            transform: scale(0.98) translateY(0);
+        }
+
+        .primary-btn.disabled {
+            opacity: 0.5;
+            pointer-events: none;
+            filter: grayscale(1);
+        }
+
+        /* Chat Toggle FAB */
+        .fab-chat {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), var(--accent-purple));
+            border: none;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 100;
+            transition: transform 0.3s;
+        }
+
+        .fab-chat:active {
+            transform: scale(0.9);
+        }
+
+        .unread-dot {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 14px;
+            height: 14px;
+            background: #ef4444;
+            border: 2px solid #0c0e14;
+            border-radius: 50%;
+            animation: pulse-dot 2s infinite;
+        }
+
+        .fab-chat.hidden {
+            display: none;
+        }
+
+        @keyframes pulse-dot {
+            0% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+            }
+        }
+
+        /* Chat Drawer */
+        .chat-drawer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 70vh;
+            background: #13161f;
+            border-top: 1px solid var(--glass-border);
+            border-radius: 24px 24px 0 0;
+            box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.6);
+            transform: translateY(110%);
+            transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        .chat-drawer.open {
+            transform: translateY(0);
+        }
+
+        .chat-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-header h3 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .close-chat {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 24px;
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 10px 14px;
+            border-radius: 16px;
+            font-size: 14px;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+
+        .message.sent {
+            align-self: flex-end;
+            background: linear-gradient(135deg, var(--accent), var(--accent-purple));
+            color: #0c0e14;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.received {
+            align-self: flex-start;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border-bottom-left-radius: 4px;
+        }
+
+        .chat-input-area {
+            padding: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--glass-border);
+            border-radius: 99px;
+            padding: 12px 20px;
+            color: white;
+            outline: none;
+            font-size: 14px;
+        }
+
+        .send-chat-btn {
+            background: var(--accent);
+            color: #0c0e14;
+            border: none;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .error-message {
+            color: var(--error);
+            font-size: 13px;
+            background: rgba(239, 68, 68, 0.1);
+            padding: 10px;
+            border-radius: 12px;
+            display: none;
+            margin-top: 10px;
+        }
+
+        .info-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            color: var(--text-secondary);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: serif;
+            font-style: italic;
+            font-weight: bold;
+            transition: all 0.2s;
+            position: relative;
+            /* Not absolute anymore */
+            top: auto;
+            right: auto;
+        }
+
+        .info-btn:active {
+            transform: scale(0.9);
+        }
+
+        #sound-toggle {
+            width: 32px;
+            height: 32px;
+            font-size: 16px;
+            font-family: sans-serif;
+            font-style: normal;
+            margin-left: 5px;
+            /* Added spacing */
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            opacity: 0.8;
+        }
+
+
+        .info-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(12, 14, 20, 0.95);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .info-content {
+            background: #1e293b;
+            padding: 30px;
+            border-radius: 20px;
+            max-width: 400px;
+            width: 100%;
+            position: relative;
+            border: 1px solid var(--glass-border);
+        }
+
+        .info-content h2 {
+            color: var(--accent);
+            margin-bottom: 20px;
+        }
+
+        .info-content ul {
+            text-align: left;
+            margin-bottom: 20px;
+            padding-left: 20px;
+            color: var(--text-primary);
+        }
+
+        .info-content li {
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+    </div>
+
+    <div class="container">
+        <header>
+            <div class="logo">
+                <img src="icons/icon128.png" alt="Logo">
+                <h1>QuickSend</h1>
+            </div>
+            <div class="header-right">
+                <button id="sound-toggle" class="info-btn">🔊</button>
+                <button id="info-btn" class="info-btn">i</button>
+            </div>
+        </header>
+
+        <div id="status-badge" class="status-badge">Connecting...</div>
+
+        <!-- Mode Selection -->
+        <div id="mode-selection" class="view">
+            <button id="btn-send-mode" class="card-btn">
+                <div class="icon">📤</div>
+                <div class="text">
+                    <h3>Send File</h3>
+                    <p>Start a new session</p>
+                </div>
+            </button>
+            <button id="btn-receive-mode" class="card-btn">
+                <div class="icon">📥</div>
+                <div class="text">
+                    <h3>Receive File</h3>
+                    <p>Enter code to connect</p>
+                </div>
+            </button>
+        </div>
+
+        <!-- Sender View -->
+        <div id="sender-view" class="view hidden">
+            <div class="step">
+                <label for="file-input-sender" class="file-drop-area" id="drop-area">
+                    <span class="file-icon">📄</span>
+                    <span id="file-name-display">Tap to select a file</span>
+                    <input type="file" id="file-input-sender" multiple hidden>
+                </label>
+            </div>
+            <div id="code-display-area" class="hidden">
+                <p>Share this code:</p>
+                <div class="code-box">
+                    <span id="session-code">...</span>
+                </div>
+                <div id="qrcode-container">
+                    <div id="qrcode"></div>
+                    <p class="qr-hint" style="font-size: 11px; margin-top: 10px; opacity: 0.6;">Scan with another
+                        device to connect</p>
+                    <button id="btn-share-code" class="secondary-btn hidden"
+                        style="margin-top: 15px; border-color: var(--accent); color: var(--accent);">Share Code</button>
+                </div>
+            </div>
+            <button id="btn-cancel-send" class="secondary-btn" style="margin-top:20px;">Back</button>
+        </div>
+
+        <!-- Manual Input View -->
+        <div id="receiver-view" class="view hidden">
+            <div class="input-group">
+                <label>Enter 6-digit Code</label>
+                <input type="text" id="code-input" placeholder="123456" maxlength="6" pattern="\d*" inputmode="numeric"
+                    style="width: 100%; padding: 16px; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); border-radius: 12px; color: white; font-size: 24px; text-align: center; letter-spacing: 4px; margin: 20px 0;">
+            </div>
+            <button id="btn-connect" class="primary-btn">Connect & Receive</button>
+            <button id="btn-cancel-receive" class="secondary-btn" style="margin-top:20px;">Back</button>
+        </div>
+
+        <!-- Transfer UI (Existing) -->
+        <div id="transfer-ui" class="view hidden">
+            <div id="current-filename" class="current-filename hidden"></div>
+            <div id="progress-container" class="progress-container">
+                <div class="progress-wrapper">
+                    <div id="progress-bar" class="progress-bar"></div>
+                </div>
+                <div class="stats">
+                    <span id="percent">0%</span>
+                    <span id="speed">0 MB/s</span>
+                </div>
+            </div>
+
+            <div id="files-list" class="files-list">
+                <!-- Received files will appear here -->
+            </div>
+            <button id="btn-exit-session" class="secondary-btn" style="margin-top:20px;">Exit Session</button>
+        </div>
+
+        <div id="error-ui" class="error-message"></div>
+
+        <!-- Actions -->
+        <div class="actions">
+            <div style="display:flex; gap:10px; width:100%;">
+                <button id="btn-send-file" class="primary-btn disabled" style="flex:1;">Send File</button>
+                <button id="btn-paste" class="primary-btn disabled"
+                    style="flex:1; background: var(--accent-purple);">Paste</button>
+            </div>
+            <input type="file" id="file-input" hidden>
+        </div>
+
+        <p style="font-size: 12px; color: var(--text-secondary); margin-top: 10px;">Keep browser open during
+            transfer.
+        </p>
+
+        <div id="info-overlay" class="info-overlay hidden">
+            <div class="info-content">
+                <button id="info-close" class="close-btn">&times;</button>
+                <h2>How to Use</h2>
+                <ul>
+                    <li><strong>Connect:</strong> You are linked via the secure code.</li>
+                    <li><strong>Send:</strong> Tap "Send File" to upload photos/videos.</li>
+                    <li><strong>Paste:</strong> Tap "Paste" to share clipboard text.</li>
+                    <li><strong>Save:</strong> Click "Download" on received items.</li>
+                    <li><strong>App:</strong> Add to Home Screen for fullscreen mode.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Floating Button -->
+    <button id="btn-toggle-chat" class="fab-chat hidden">
+        <div id="chat-unread" class="unread-dot hidden"></div>
+        💬
+    </button>
+
+    <!-- Chat Drawer -->
+    <div id="chat-drawer" class="chat-drawer">
+        <div class="chat-header">
+            <h3>Peer Chat</h3>
+            <button id="btn-close-chat" class="close-chat">✕</button>
+        </div>
+        <div id="chat-messages" class="chat-messages">
+            <!-- Messages go here -->
+        </div>
+        <div class="chat-input-area">
+            <input type="text" id="chat-input" class="chat-input" placeholder="Type a message...">
+            <button id="btn-send-chat" class="send-chat-btn">➤</button>
+        </div>
+    </div>
+
+    <!-- Libs -->
+    <script src="libs/audio.js?v=2.0"></script>
+    <script src="libs/supabase.js?v=2.0"></script>
+    <script src="libs/qrcode.js?v=2.0"></script>
+    <script src="config.js?v=2.0"></script>
+
+    <script>
+        window.addEventListener('load', function () {
+            // --- Logic ---
+            const urlParams = new URLSearchParams(window.location.search);
+            const code = urlParams.get('code');
+
+            // UI Elements
+            const ui = {
+                status: document.getElementById('status-badge'),
+                error: document.getElementById('error-ui'),
+                progressContainer: document.getElementById('progress-container'),
+                progressBar: document.getElementById('progress-bar'),
+                percent: document.getElementById('percent'),
+                speed: document.getElementById('speed'),
+                filename: document.getElementById('current-filename'),
+                filesList: document.getElementById('files-list'),
+                btnSendFile: document.getElementById('btn-send-file'),
+                fileInput: document.getElementById('file-input'),
+                btnChatToggle: document.getElementById('btn-toggle-chat'),
+                chatDrawer: document.getElementById('chat-drawer'),
+                chatMessages: document.getElementById('chat-messages'),
+                chatInput: document.getElementById('chat-input'),
+                btnSendChat: document.getElementById('btn-send-chat'),
+                btnCloseChat: document.getElementById('btn-close-chat'),
+                chatUnread: document.getElementById('chat-unread'),
+                btnPaste: document.getElementById('btn-paste'),
+                infoBtn: document.getElementById('info-btn'),
+                infoOverlay: document.getElementById('info-overlay'),
+                infoClose: document.getElementById('info-close'),
+                soundToggle: document.getElementById('sound-toggle'),
+                // New View Elements
+                btnSendMode: document.getElementById('btn-send-mode'),
+                btnReceiveMode: document.getElementById('btn-receive-mode'),
+                btnCancelSend: document.getElementById('btn-cancel-send'),
+                btnCancelReceive: document.getElementById('btn-cancel-receive'),
+                btnConnect: document.getElementById('btn-connect'),
+                codeInput: document.getElementById('code-input'),
+                sessionCodeText: document.getElementById('session-code'),
+                qrcodeDiv: document.getElementById('qrcode'),
+                fileInputSender: document.getElementById('file-input-sender'),
+                codeDisplayArea: document.getElementById('code-display-area'),
+                btnShareCode: document.getElementById('btn-share-code'),
+                btnExitSession: document.getElementById('btn-exit-session')
+            };
+
+            const views = {
+                selection: document.getElementById('mode-selection'),
+                sender: document.getElementById('sender-view'),
+                receiver: document.getElementById('receiver-view'),
+                transfer: document.getElementById('transfer-ui')
+            };
+
+            // WebRTC Config & TURN
+            let rtcConfig = {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:global.stun.twilio.com:3478' }
+                ]
+            };
+            const METERED_API_KEY = "7901977ec1ad39f11335a956e16f677d8cb7";
+            const METERED_DOMAIN = "milanmantony.metered.live";
+            
+            // Promise that resolves when TURN is ready (or failed/timeout)
+            const turnReadyPromise = (async () => {
+                try {
+                    const res = await fetch(`https://${METERED_DOMAIN}/api/v1/turn/credentials?apiKey=${METERED_API_KEY}`);
+                    const servers = await res.json();
+                    rtcConfig.iceServers = [...rtcConfig.iceServers, ...servers];
+                    console.log("TURN Loaded (Mobile)");
+                } catch(e) { console.warn("TURN Fetch Failed", e); }
+            })();
+
+            // Init Audio
+            AudioEngine.init();
+            ui.soundToggle.textContent = AudioEngine.enabled ? '🔊' : '🔇';
+            ui.soundToggle.onclick = () => {
+                const isOn = AudioEngine.toggle();
+                ui.soundToggle.textContent = isOn ? '🔊' : '🔇';
+                if (isOn) AudioEngine.play('nav');
+            };
+
+            // Info Handlers
+            ui.infoBtn.onclick = () => ui.infoOverlay.classList.remove('hidden');
+            ui.infoClose.onclick = () => ui.infoOverlay.classList.add('hidden');
+
+            function showView(viewId) {
+                Object.values(views).forEach(v => v.classList.add('hidden'));
+                views[viewId].classList.remove('hidden');
+            }
+
+            // Mode Selection logic
+            ui.btnSendMode.onclick = () => {
+                AudioEngine.play('nav');
+                showView('sender');
+            };
+
+            ui.btnReceiveMode.onclick = () => {
+                AudioEngine.play('nav');
+                showView('receiver');
+            };
+
+            ui.btnCancelSend.onclick = () => {
+                AudioEngine.play('nav');
+                resetApp();
+            };
+
+            ui.btnCancelReceive.onclick = () => {
+                AudioEngine.play('nav');
+                resetApp();
+            };
+
+            ui.btnExitSession.onclick = () => {
+                AudioEngine.play('nav');
+                resetApp();
+            };
+
+            ui.btnConnect.onclick = () => {
+                const manualCode = ui.codeInput.value.trim();
+                if (manualCode.length === 6) {
+                    AudioEngine.play('nav');
+                    initReceiver(manualCode);
+                } else {
+                    showError("Enter 6-digit code");
+                }
+            };
+
+            if (code) {
+                // Auto-init if code is in URL
+                initReceiver(code);
+            } else {
+                showView('selection');
+            }
+
+            // Global State
+            let peerConnection;
+            let dataChannel;
+            let currentFile = null;
+            let receivedChunks = [];
+            let receivedBlobUrls = [];
+            let supabase;
+            let sessionCode = null; // Track globally for cleanup
+            let heartbeatInterval = null;
+
+            try {
+                supabase = window.createClient(SUPABASE_URL, SUPABASE_KEY);
+            } catch (err) {
+                showError("Init failed. Check internet.");
+                return;
+            }
+
+            // --- Handlers ---
+
+            ui.btnSendFile.onclick = () => ui.fileInput.click();
+            ui.fileInput.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) startFileTransfer(file);
+                ui.fileInput.value = ''; // Reset
+            };
+
+            ui.btnPaste.onclick = async () => {
+                try {
+                    let text = '';
+                    try {
+                        text = await navigator.clipboard.readText();
+                    } catch (permErr) {
+                        // Fallback for permissions
+                        console.warn("Clipboard read failed, attempting prompt", permErr);
+                        text = prompt("Paste text to share:");
+                    }
+
+                    if (text && dataChannel && dataChannel.readyState === 'open') {
+                        dataChannel.send(JSON.stringify({ type: 'clipboard', text: text }));
+                        addChatMessage('sent', 'Shared Clipboard Text');
+                    } else if (text === null) {
+                        // Cancelled prompt
+                    } else {
+                        // Empty or not connected
+                        if (!dataChannel || dataChannel.readyState !== 'open') showError("Not Connected");
+                        else showError("Clipboard/Input is empty");
+                    }
+                } catch (e) { console.error(e); showError("Clipboard Error"); }
+            };
+
+            ui.btnChatToggle.onclick = () => {
+                ui.chatDrawer.classList.add('open');
+                ui.chatUnread.classList.add('hidden');
+                AudioEngine.play('nav');
+            };
+            ui.btnCloseChat.onclick = () => {
+                ui.chatDrawer.classList.remove('open');
+                AudioEngine.play('nav');
+            };
+            ui.btnSendChat.onclick = () => {
+                sendChat();
+                // sound handled in sendChat/addChatMessage
+            };
+            ui.chatInput.onkeydown = (e) => {
+                if (e.key === 'Enter') {
+                    sendChat();
+                }
+            }
+
+            function showError(msg) {
+                AudioEngine.play('error');
+                ui.error.textContent = msg;
+                ui.error.style.display = 'block';
+                ui.status.textContent = "Error";
+                ui.status.classList.add('error');
+            }
+
+            function updateStatus(text, type) {
+                ui.status.textContent = text;
+                ui.status.className = 'status-badge ' + (type || '');
+            }
+
+            // --- P2P Connection ---
+
+            async function initReceiver(targetCode) {
+                try {
+                    showView('transfer');
+                    updateStatus("Connecting...", "connecting");
+
+                    const { data: session, error } = await supabase.from('sessions').select('*').eq('code', targetCode).single();
+                    if (error || !session) {
+                        showError("Session not found or expired.");
+                        setTimeout(resetApp, 2000);
+                        return;
+                    }
+
+                    await turnReadyPromise;
+                    peerConnection = new RTCPeerConnection({ iceServers: rtcConfig.iceServers });
+                    sessionCode = targetCode;
+
+                    peerConnection.onconnectionstatechange = () => {
+                        const state = peerConnection.connectionState;
+                        if (state === 'failed' || state === 'disconnected' || state === 'closed') {
+                            updateStatus("Connection Lost", "error");
+                        }
+                    };
+
+                    // Handle Incoming Data Channel (from PC or another mobile)
+                    peerConnection.ondatachannel = (e) => {
+                        dataChannel = e.channel;
+                        setupDataChannel(dataChannel);
+                    };
+
+                    peerConnection.onicecandidate = async (e) => {
+                        if (e.candidate) {
+                            const { data } = await supabase.from('sessions').select('receiver_ice').eq('code', targetCode).maybeSingle();
+                            const current = data?.receiver_ice || [];
+                            current.push(e.candidate);
+                            await supabase.from('sessions').update({ receiver_ice: current }).eq('code', targetCode);
+                        }
+                    };
+
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(session.offer));
+                    const answer = await peerConnection.createAnswer();
+                    await peerConnection.setLocalDescription(answer);
+                    await supabase.from('sessions').update({ answer }).eq('code', targetCode);
+
+                    // Listen into session
+                    supabase.channel(`session-${targetCode}`)
+                        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sessions', filter: `code=eq.${targetCode}` }, payload => {
+                            const data = payload.new;
+                            if (data.sender_ice) {
+                                data.sender_ice.forEach(c => {
+                                    peerConnection.addIceCandidate(new RTCIceCandidate(c)).catch(() => { });
+                                });
+                            }
+                        })
+                        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'sessions', filter: `code=eq.${targetCode}` }, () => {
+                            updateStatus("Peer Disconnected", 'error');
+                            ui.btnSendFile.classList.add('disabled');
+                            ui.btnPaste.classList.add('disabled');
+                        })
+                        .subscribe();
+
+                } catch (err) {
+                    console.error(err);
+                    showError("Connection failed.");
+                }
+            }
+
+            // --- Sender Role ---
+            ui.fileInputSender.onchange = async (e) => {
+                const files = e.target.files;
+                if (!files || files.length === 0) return;
+
+                AudioEngine.play('nav');
+                await startSenderSession();
+
+                // Once connected or at least session started, we might want to wait.
+                // For now, it works like the extension: Start Session -> Show Code -> Wait for Peer
+            };
+
+            async function startSenderSession() {
+                try {
+                    sessionCode = Math.floor(100000 + Math.random() * 900000).toString();
+                    ui.sessionCodeText.textContent = sessionCode;
+                    ui.codeDisplayArea.classList.remove('hidden');
+
+                    // Share Button Support
+                    if (navigator.share) {
+                        ui.btnShareCode.classList.remove('hidden');
+                        ui.btnShareCode.onclick = () => {
+                            navigator.share({
+                                title: 'QuickSend Code',
+                                text: `Join my QuickSend session: ${sessionCode}`,
+                                url: window.location.origin + window.location.pathname + '?code=' + sessionCode
+                            }).catch(() => { });
+                        };
+                    }
+
+                    // Show QR
+                    ui.qrcodeDiv.innerHTML = '';
+                    new QRCode(ui.qrcodeDiv, {
+                        text: window.location.origin + window.location.pathname + "?code=" + sessionCode,
+                        width: 128,
+                        height: 128,
+                        colorDark: "#0c0e14",
+                        colorLight: "#ffffff",
+                        correctLevel: QRCode.CorrectLevel.H
+                    });
+
+                    updateStatus("Waiting for peer...", "connecting");
+
+                    await turnReadyPromise;
+                    peerConnection = new RTCPeerConnection({ iceServers: rtcConfig.iceServers });
+
+                    peerConnection.onconnectionstatechange = () => {
+                        const state = peerConnection.connectionState;
+                        if (state === 'failed' || state === 'disconnected' || state === 'closed') {
+                            updateStatus("Connection Lost", "error");
+                        }
+                    };
+
+                    dataChannel = peerConnection.createDataChannel("sendDataChannel", { reliable: true });
+                    setupDataChannel(dataChannel);
+
+                    const offer = await peerConnection.createOffer();
+                    await peerConnection.setLocalDescription(offer);
+
+                    const { error } = await supabase.from('sessions').insert([{ code: sessionCode, offer: offer }]);
+                    if (error) throw error;
+
+                    peerConnection.onicecandidate = async (e) => {
+                        if (e.candidate) {
+                            const { data } = await supabase.from('sessions').select('sender_ice').eq('code', sessionCode).maybeSingle();
+                            const current = data?.sender_ice || [];
+                            current.push(e.candidate);
+                            await supabase.from('sessions').update({ sender_ice: current }).eq('code', sessionCode);
+                        }
+                    };
+
+                    // Listen for Answer
+                    supabase.channel(`session-${sessionCode}`)
+                        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sessions', filter: `code=eq.${sessionCode}` }, async (payload) => {
+                            const data = payload.new;
+                            if (data.answer && peerConnection.signalingState !== 'stable') {
+                                await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+                                showView('transfer');
+                            }
+                            if (data.receiver_ice) {
+                                data.receiver_ice.forEach(c => {
+                                    peerConnection.addIceCandidate(new RTCIceCandidate(c)).catch(() => { });
+                                });
+                            }
+                        })
+                        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'sessions', filter: `code=eq.${sessionCode}` }, () => {
+                            updateStatus("Peer Disconnected", 'error');
+                            ui.btnSendFile.classList.add('disabled');
+                            ui.btnPaste.classList.add('disabled');
+                        })
+                        .subscribe();
+
+                } catch (err) {
+                    console.error(err);
+                    showError("Failed to start session.");
+                }
+            }
+
+            function resetApp() {
+                if (peerConnection) {
+                    peerConnection.close();
+                    peerConnection = null;
+                }
+                if (heartbeatInterval) {
+                    clearInterval(heartbeatInterval);
+                    heartbeatInterval = null;
+                }
+                showView('selection');
+                ui.codeDisplayArea.classList.add('hidden');
+                ui.status.textContent = "Connecting...";
+                ui.status.className = 'status-badge';
+                ui.error.style.display = 'none';
+                ui.filesList.innerHTML = '';
+                ui.filename.classList.add('hidden');
+                ui.progressContainer.style.display = 'none';
+                ui.btnSendFile.classList.add('disabled');
+                ui.btnPaste.classList.add('disabled');
+            }
+
+            function setupDataChannel(channel) {
+                channel.binaryType = 'arraybuffer';
+                channel.onopen = () => {
+                    AudioEngine.play('connect');
+                    updateStatus("Connected", "connected");
+                    ui.btnSendFile.classList.remove('disabled');
+                    ui.btnPaste.classList.remove('disabled');
+                    ui.btnChatToggle.classList.remove('hidden');
+
+                    // Heartbeat to catch silent drops
+                    if (heartbeatInterval) clearInterval(heartbeatInterval);
+                    heartbeatInterval = setInterval(() => {
+                        if (channel.readyState === 'open') {
+                            try { channel.send(JSON.stringify({ type: 'ping' })); }
+                            catch (e) { clearInterval(heartbeatInterval); }
+                        } else { clearInterval(heartbeatInterval); }
+                    }, 2000);
+                };
+                channel.onclose = () => {
+                    updateStatus("Disconnected", "error");
+                    ui.btnSendFile.classList.add('disabled');
+                    ui.btnPaste.classList.add('disabled');
+                    setTimeout(resetApp, 1500); // Back to menu after short delay
+                };
+                channel.onmessage = handleMessage;
+            }
+
+            window.addEventListener('beforeunload', () => {
+                if (dataChannel) dataChannel.close();
+                if (peerConnection) peerConnection.close();
+                if (sessionCode) {
+                    supabase.from('sessions').delete().eq('code', sessionCode);
+                }
+            });
+
+            function handleMessage(event) {
+                const data = event.data;
+                if (typeof data === 'string') {
+                    const msg = JSON.parse(data);
+                    if (msg.type === 'ping') return; // Ignore heartbeats
+                    if (msg.type === 'meta') {
+                        // Start Receive
+                        incomingFileName = msg.name;
+                        totalSize = msg.size;
+                        receivedBytes = 0;
+                        receivedChunks = [];
+                        startTime = Date.now();
+                        AudioEngine.play('receive');
+
+                        ui.filename.textContent = "Receiving: " + incomingFileName;
+                        ui.filename.classList.remove('hidden');
+                        ui.progressContainer.style.display = 'block';
+                        updateProgress(0);
+                    } else if (msg.type === 'chat') {
+                        addChatMessage('received', msg.text);
+                    } else if (msg.type === 'clipboard') {
+                        navigator.clipboard.writeText(msg.text).then(() => {
+                            AudioEngine.play('copied');
+                            addChatMessage('received', '📋 Copied to Clipboard!');
+                        });
+                    }
+                } else {
+                    // Binary
+                    receivedChunks.push(data);
+                    receivedBytes += data.byteLength;
+
+                    // Throttle UI Updates (every 100ms)
+                    const now = Date.now();
+                    if (!window.lastRxUpdate || now - window.lastRxUpdate > 100 || receivedBytes >= totalSize) {
+                        updateProgress(receivedBytes);
+                        window.lastRxUpdate = now;
+                    }
+
+                    if (receivedBytes >= totalSize) {
+                        finishFileReceive();
+                    }
+                }
+            }
+
+            function finishFileReceive() {
+                const blob = new Blob(receivedChunks);
+                const url = URL.createObjectURL(blob);
+                receivedBlobUrls.push(url);
+
+                // Media Preview Logic
+                let previewHtml = '';
+                const mime = blob.type;
+
+                if (mime.startsWith('image/')) {
+                    previewHtml = `<img src="${url}" style="width: 40px; height: 40px; border-radius: 8px; object-fit: cover; margin-right: 12px; border: 1px solid rgba(255,255,255,0.1);">`;
+                } else if (mime.startsWith('video/')) {
+                    previewHtml = `<div style="width: 40px; height: 40px; background: rgba(0,0,0,0.3); border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-right: 12px; border: 1px solid rgba(255,255,255,0.1);">▶️</div>`;
+                } else {
+                    previewHtml = `<div style="width: 40px; height: 40px; background: rgba(255,255,255,0.05); border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-right: 12px;">📄</div>`;
+                }
+
+                // Add to list
+                const div = document.createElement('div');
+                div.className = 'file-item';
+                div.innerHTML = `
+                    <div style="display:flex; align-items:center; overflow:hidden; flex:1;">
+                        ${previewHtml}
+                        <div class="file-info" style="min-width:0;">
+                            <div class="file-name">${incomingFileName}</div>
+                            <div class="file-size">${(totalSize / 1024 / 1024).toFixed(2)} MB</div>
+                        </div>
+                    </div>
+                    <a href="${url}" download="${incomingFileName}" class="file-action-btn">Download</a>
+                `;
+                ui.filesList.appendChild(div);
+
+                // Reset Progress UI
+                ui.progressContainer.style.display = 'none';
+                ui.filename.textContent = '';
+                AudioEngine.play('success');
+            }
+
+            // PWA Registration
+            if ('serviceWorker' in navigator) {
+                // Wait for load to not block critical rendering
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('sw.js');
+                });
+            }
+
+            function updateProgress(bytes) {
+                if (totalSize === 0) return;
+                const percent = Math.floor((bytes / totalSize) * 100);
+                ui.progressBar.style.width = percent + '%';
+                ui.percent.textContent = percent + '%';
+
+                const duration = (Date.now() - startTime) / 1000;
+                if (duration > 0) {
+                    const speed = (bytes / 1024 / 1024) / duration;
+                    ui.speed.textContent = speed.toFixed(1) + ' MB/s';
+                }
+            }
+
+            // --- Chat Logic ---
+
+            function sendChat() {
+                const text = ui.chatInput.value.trim();
+                if (!text || !dataChannel || dataChannel.readyState !== 'open') return;
+
+                dataChannel.send(JSON.stringify({ type: 'chat', text: text }));
+                addChatMessage('sent', text);
+                ui.chatInput.value = '';
+            }
+
+            function addChatMessage(dir, text) {
+                const div = document.createElement('div');
+                div.className = `message ${dir}`;
+                div.textContent = text;
+                ui.chatMessages.appendChild(div);
+                ui.chatMessages.scrollTop = ui.chatMessages.scrollHeight;
+
+                if (dir === 'received') {
+                    AudioEngine.play('message');
+                    if (!ui.chatDrawer.classList.contains('open')) {
+                        ui.chatUnread.classList.remove('hidden');
+                    }
+                } else {
+                    AudioEngine.play('message');
+                }
+            }
+
+            // --- Sending File Logic ---
+
+            async function startFileTransfer(file) {
+                if (!file || !dataChannel) return;
+
+                ui.filename.textContent = "Sending: " + file.name;
+                ui.filename.classList.remove('hidden');
+                ui.progressContainer.style.display = 'block';
+                startTime = Date.now();
+                totalSize = file.size; // Global for progress update reusing
+
+                // 1. Send Meta
+                dataChannel.send(JSON.stringify({ type: 'meta', name: file.name, size: file.size, mime: file.type }));
+
+                // 2. Send Chunks Optimized
+                const CHUNK_SIZE = 64 * 1024; // 64KB
+                dataChannel.bufferedAmountLowThreshold = 64 * 1024;
+
+                const fileReader = new FileReader();
+                let offset = 0;
+                let lastTxUpdate = 0;
+
+                function readSlice() {
+                    if (offset >= file.size) return;
+                    const slice = file.slice(offset, offset + CHUNK_SIZE);
+                    fileReader.readAsArrayBuffer(slice);
+                }
+
+                fileReader.onload = async (e) => {
+                    const buffer = e.target.result;
+                    if (!buffer) return;
+
+                    try {
+                        if (dataChannel.bufferedAmount > 8 * 1024 * 1024) {
+                            await new Promise(resolve => {
+                                dataChannel.onbufferedamountlow = () => {
+                                    dataChannel.onbufferedamountlow = null;
+                                    resolve();
+                                };
+                            });
+                        }
+
+                        dataChannel.send(buffer);
+                        offset += buffer.byteLength;
+
+                        // Throttle UI
+                        const now = Date.now();
+                        if (now - lastTxUpdate > 100 || offset >= file.size) {
+                            updateProgress(offset);
+                            lastTxUpdate = now;
+                        }
+
+                        if (offset < file.size) {
+                            readSlice();
+                        } else {
+                            // Done
+                            ui.status.textContent = "Sent Successfully";
+                            ui.status.classList.add('connected');
+                            ui.progressContainer.style.display = 'none';
+                            ui.filename.textContent = "Sent: " + file.name;
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        showError("Transfer failed.");
+                    }
+                };
+
+                readSlice();
+            }
+
+            // Auto-connect if code in URL
+            if (code && code.length === 6) {
+                ui.codeInput.value = code;
+                initReceiver(code);
+            }
+
+
+        });
+    </script>
+</body>
+
+</html>
