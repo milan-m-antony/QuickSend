@@ -1548,11 +1548,30 @@
                     }
 
                     // Diagnostic logging
+                    const isFirstFile = filesList.children.length === 1;
                     console.log("✅ File item appended");
+                    console.log("   Is FIRST file:", isFirstFile);
                     console.log("   Total items:", filesList.children.length);
                     console.log("   List display:", window.getComputedStyle(filesList).display);
                     console.log("   List visibility:", window.getComputedStyle(filesList).visibility);
                     console.log("   Parent view:", transferUI?.id, transferUI?.className);
+                    console.log("   Item in DOM:", document.contains(div));
+
+                    // FORCE browser reflow
+                    void filesList.offsetHeight;
+                    void transferUI?.offsetHeight;
+
+                    // NUCLEAR FIX for first file only
+                    if (isFirstFile) {
+                        console.log("🔥 FIRST FILE - Forcing re-render");
+                        const clone = div.cloneNode(true);
+                        filesList.removeChild(div);
+                        requestAnimationFrame(() => {
+                            filesList.appendChild(clone);
+                            void filesList.offsetHeight;
+                            console.log("   ✅ Re-rendered. Items:", filesList.children.length);
+                        });
+                    }
 
                     // Show toast notification
                     showToast(`📥 Received: ${incomingFileName}`);
