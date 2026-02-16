@@ -743,6 +743,28 @@
         .hidden {
             display: none !important;
         }
+
+        .toast {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(20, 20, 30, 0.95);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: 1px solid var(--primary);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 10000;
+            transition: opacity 0.3s, transform 0.3s;
+            font-size: 14px;
+        }
+
+        .toast.hidden {
+            opacity: 0;
+            transform: translateX(-50%) translateY(20px);
+            pointer-events: none;
+        }
     </style>
 </head>
 
@@ -804,6 +826,9 @@
                         device to connect</p>
                     <button id="btn-share-code" class="secondary-btn hidden"
                         style="margin-top: 15px; border-color: var(--accent); color: var(--accent);">Share Code</button>
+                    <button id="btn-copy-code" class="secondary-btn"
+                        style="margin-top: 15px; border-color: var(--primary); color: var(--primary);">Copy
+                        Code</button>
                 </div>
             </div>
             <button id="btn-cancel-send" class="secondary-btn" style="margin-top:20px;">Back</button>
@@ -893,6 +918,9 @@
         </div>
     </div>
 
+    <!-- Toast Notification -->
+    <div id="toast" class="toast hidden"></div>
+
     <!-- Libs -->
     <script src="libs/audio.js?v=2.1"></script>
     <script src="libs/supabase.js?v=2.1"></script>
@@ -942,7 +970,9 @@
                 fileInputSender: document.getElementById('file-input-sender'),
                 codeDisplayArea: document.getElementById('code-display-area'),
                 btnShareCode: document.getElementById('btn-share-code'),
-                btnExitSession: document.getElementById('btn-exit-session')
+                btnCopyCode: document.getElementById('btn-copy-code'),
+                btnExitSession: document.getElementById('btn-exit-session'),
+                toast: document.getElementById('toast')
             };
 
             const views = {
@@ -1058,6 +1088,13 @@
             }
 
             // --- Handlers ---
+
+            // Toast notification
+            function showToast(msg) {
+                ui.toast.textContent = msg;
+                ui.toast.classList.remove('hidden');
+                setTimeout(() => ui.toast.classList.add('hidden'), 3000);
+            }
 
             ui.btnSendFile.onclick = () => ui.fileInput.click();
             ui.fileInput.onchange = (e) => {
@@ -1221,6 +1258,27 @@
                             }).catch(() => { });
                         };
                     }
+
+                    // Copy Code Button
+                    ui.btnCopyCode.onclick = async () => {
+                        try {
+                            await navigator.clipboard.writeText(sessionCode);
+                            ui.btnCopyCode.textContent = '✓ Copied!';
+                            showToast('Code copied to clipboard');
+                            setTimeout(() => {
+                                ui.btnCopyCode.textContent = 'Copy Code';
+                            }, 2000);
+                        } catch (e) {
+                            // Fallback for older browsers
+                            const input = document.createElement('input');
+                            input.value = sessionCode;
+                            document.body.appendChild(input);
+                            input.select();
+                            document.execCommand('copy');
+                            document.body.removeChild(input);
+                            showToast('Code copied!');
+                        }
+                    };
 
                     // Show QR
                     ui.qrcodeDiv.innerHTML = '';
@@ -1467,18 +1525,35 @@
                 `;
                     ui.filesList.appendChild(div);
 
-                    // Diagnostic logging
-                    console.log("File item appended. Total items:", ui.filesList.children.length);
-                    console.log("List display:", window.getComputedStyle(ui.filesList).display);
+                    // CRITICAL: Force files-list and parent to be visible
+                    const filesList = ui.filesList;
+                    const transferUI = document.getElementById('transfer-ui');
 
-                    // Ensure list is visible (simpler approach)
-                    if (ui.filesList.style.display === 'none') {
-                        ui.filesList.style.display = 'flex';
+                    // Force visibility on multiple levels
+                    filesList.style.display = 'flex';
+                    filesList.style.visibility = 'visible';
+                    filesList.style.opacity = '1';
+                    filesList.style.minHeight = '60px';
+
+                    // Ensure parent view is visible
+                    if (transferUI) {
+                        transferUI.classList.remove('hidden');
+                        transferUI.style.display = 'block';
                     }
+
+                    // Diagnostic logging
+                    console.log("✅ File item appended");
+                    console.log("   Total items:", filesList.children.length);
+                    console.log("   List display:", window.getComputedStyle(filesList).display);
+                    console.log("   List visibility:", window.getComputedStyle(filesList).visibility);
+                    console.log("   Parent view:", transferUI?.id, transferUI?.className);
+
+                    // Show toast notification
+                    showToast(`📥 Received: ${incomingFileName}`);
 
                     // Scroll to show new item
                     setTimeout(() => {
-                        ui.filesList.scrollTop = ui.filesList.scrollHeight;
+                        filesList.scrollTop = filesList.scrollHeight;
                     }, 100);
 
                     // Reset Progress UI
