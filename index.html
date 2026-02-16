@@ -755,26 +755,27 @@
             top: 20px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(20, 20, 30, 0.9);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            background: rgba(28, 28, 40, 0.9);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
             color: white;
-            padding: 12px 28px;
-            border-radius: 30px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            padding: 12px 32px;
+            border-radius: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
             z-index: 10000;
             transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
             font-size: 14px;
-            font-weight: 500;
+            font-weight: 600;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
+            letter-spacing: 0.2px;
         }
 
         .toast.hidden {
             opacity: 0;
-            transform: translateX(-50%) translateY(-50px);
+            transform: translateX(-50%) translateY(-60px) scale(0.9);
             pointer-events: none;
         }
     </style>
@@ -1078,21 +1079,18 @@
             // Global State
             let peerConnection;
             let dataChannel;
-            let currentFile = null;
-            let receivedChunks = [];
-            let receivedBytes = 0;
-            let totalSize = 0;
-            let startTime = 0;
-            let incomingFileName = "";
-            let incomingMime = "";
-            let receivedBlobUrls = [];
-            let isReceiving = false;
             let supabase;
             let sessionCode = null;
             let activeSubscription = null;
             let heartbeatInterval = null;
             let transferResolve = null; // For ACK handshake
-            let receivedFiles = []; // Store file objects for robust rendering
+            let receivedFiles = []; // PERSISTENT Store for all received files
+
+            // Atomic States
+            let rxState = { active: false, fileName: "", mime: "", size: 0, chunks: [], bytes: 0, startTime: 0 };
+            let txState = { active: false, fileName: "", size: 0, bytes: 0, startTime: 0 };
+
+            const receivedBlobUrls = [];
 
             try {
                 supabase = window.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -1451,33 +1449,33 @@
                         const msg = JSON.parse(data);
                         if (msg.type === 'ping') return; // Ignore heartbeats
                         if (msg.type === 'meta') {
-                            // IDEMPOTENT GUARD: If we are already receiving THIS file, don't reset!
-                            if (isReceiving && incomingFileName === msg.name && totalSize === msg.size) {
-                                console.log("Ignoring redundant meta for active transfer");
+                            // IDEMPOTENT GUARD: If already receiving THIS file, ignore redundant packets
+                            if (rxState.active && rxState.fileName === msg.name && rxState.size === msg.size) {
+                                console.log("Ignoring redundant meta");
                                 return;
                             }
 
                             console.log("RX Meta:", msg);
-                            // Start Receive
-                            isReceiving = true;
-                            incomingFileName = msg.name;
-                            totalSize = msg.size;
-                            incomingMime = msg.mime;
-                            receivedBytes = 0;
-                            receivedChunks = [];
-                            startTime = Date.now();
+                            // Start Atomic State
+                            rxState.active = true;
+                            rxState.fileName = msg.name;
+                            rxState.size = msg.size;
+                            rxState.mime = msg.mime;
+                            rxState.chunks = [];
+                            rxState.bytes = 0;
+                            rxState.startTime = Date.now();
 
-                            showNotificationWrapper("Receiving File...", "info"); // Visual Feedback
-                            try { AudioEngine.play('receive'); } catch (e) { console.warn("Audio fail", e); }
+                            showNotificationWrapper("Receiving File...", "info");
+                            try { AudioEngine.play('receive'); } catch (e) { }
 
                             if (ui.filename) {
-                                ui.filename.textContent = "Receiving: " + incomingFileName;
+                                ui.filename.textContent = "Receiving: " + rxState.fileName;
                                 ui.filename.classList.remove('hidden');
                             }
                             if (ui.progressContainer) ui.progressContainer.style.display = 'block';
                             updateProgress(0);
 
-                            // Send ACK - Vital for Handshake
+                            // Vital ACK for Reliability
                             try { dataChannel.send(JSON.stringify({ type: 'ack' })); } catch (e) { }
 
                         } else if (msg.type === 'ack') {
@@ -1492,18 +1490,20 @@
                             });
                         }
                     } else {
-                        // Binary
-                        receivedChunks.push(data);
-                        receivedBytes += data.byteLength;
+                        // Binary Chunks
+                        if (!rxState.active) return;
 
-                        // Throttle UI Updates (every 100ms)
+                        rxState.chunks.push(data);
+                        rxState.bytes += data.byteLength;
+
+                        // Throttle UI update
                         const now = Date.now();
-                        if (!window.lastRxUpdate || now - window.lastRxUpdate > 100 || receivedBytes >= totalSize) {
-                            updateProgress(receivedBytes);
+                        if (!window.lastRxUpdate || now - window.lastRxUpdate > 100 || rxState.bytes >= rxState.size) {
+                            updateProgress(rxState.bytes);
                             window.lastRxUpdate = now;
                         }
 
-                        if (receivedBytes >= totalSize) {
+                        if (rxState.bytes >= rxState.size) {
                             finishFileReceive();
                         }
                     }
@@ -1554,32 +1554,35 @@
 
             function finishFileReceive() {
                 try {
-                    if (!totalSize || totalSize === 0) return; // Guard
-                    const blob = new Blob(receivedChunks, { type: incomingMime });
+                    if (!rxState.active || rxState.size === 0) return;
+
+                    const blob = new Blob(rxState.chunks, { type: rxState.mime });
                     const url = URL.createObjectURL(blob);
                     receivedBlobUrls.push(url);
 
-                    console.log("File Finished:", incomingFileName);
+                    console.log("File Finished:", rxState.fileName);
 
-                    // Add to store
                     receivedFiles.push({
-                        name: incomingFileName,
-                        size: totalSize,
-                        mime: incomingMime,
+                        name: rxState.fileName,
+                        size: rxState.size,
+                        mime: rxState.mime,
                         url: url
                     });
 
                     renderReceivedFiles();
-                    showToast(`\ud83d\udce5 Received: ${incomingFileName}`);
+                    showToast(`\ud83d\udce5 Received: ${rxState.fileName}`);
 
-                    // Reset State
-                    isReceiving = false;
-                    incomingFileName = "";
-                    receivedChunks = [];
-                    receivedBytes = 0;
-                    totalSize = 0;
+                    // ATOMIC RESET
+                    rxState = {
+                        active: false,
+                        fileName: "",
+                        mime: "",
+                        size: 0,
+                        chunks: [],
+                        bytes: 0,
+                        startTime: 0
+                    };
 
-                    // Reset Progress UI
                     ui.progressContainer.style.display = 'none';
                     if (ui.filename) ui.filename.textContent = '';
                     try { AudioEngine.play('success'); } catch (e) { }
@@ -1595,12 +1598,15 @@
             }
 
             function updateProgress(bytes) {
-                if (totalSize === 0) return;
-                const percent = Math.floor((bytes / totalSize) * 100);
+                // Determine which state is active
+                const state = rxState.active ? rxState : (txState.active ? txState : null);
+                if (!state || !state.size) return;
+
+                const percent = Math.floor((bytes / state.size) * 100);
                 ui.progressBar.style.width = percent + '%';
                 ui.percent.textContent = percent + '%';
 
-                const duration = (Date.now() - startTime) / 1000;
+                const duration = (Date.now() - state.startTime) / 1000;
                 if (duration > 0) {
                     const speed = (bytes / 1024 / 1024) / duration;
                     ui.speed.textContent = speed.toFixed(1) + ' MB/s';
@@ -1677,11 +1683,16 @@
 
                 console.log("Start Transfer:", file.name);
 
+                // Setup state
+                txState.active = true;
+                txState.fileName = file.name;
+                txState.size = file.size;
+                txState.bytes = 0;
+                txState.startTime = Date.now();
+
                 ui.filename.textContent = "Sending: " + file.name;
                 ui.filename.classList.remove('hidden');
                 ui.progressContainer.style.display = 'block';
-                startTime = Date.now();
-                totalSize = file.size; // Global for progress update reusing
 
                 // 1. Reliable Handshake (Retry Loop)
                 const meta = { type: 'meta', name: file.name, size: file.size, mime: file.type };
@@ -1727,12 +1738,11 @@
                 dataChannel.bufferedAmountLowThreshold = 64 * 1024;
 
                 const fileReader = new FileReader();
-                let offset = 0;
                 let lastTxUpdate = 0;
 
                 function readSlice() {
-                    if (offset >= file.size) return;
-                    const slice = file.slice(offset, offset + CHUNK_SIZE);
+                    if (txState.bytes >= file.size) return;
+                    const slice = file.slice(txState.bytes, txState.bytes + CHUNK_SIZE);
                     fileReader.readAsArrayBuffer(slice);
                 }
 
@@ -1751,27 +1761,30 @@
                         }
 
                         dataChannel.send(buffer);
-                        offset += buffer.byteLength;
+                        txState.bytes += buffer.byteLength;
 
                         // Throttle UI
                         const now = Date.now();
-                        if (now - lastTxUpdate > 100 || offset >= file.size) {
-                            updateProgress(offset);
+                        if (now - lastTxUpdate > 100 || txState.bytes >= file.size) {
+                            updateProgress(txState.bytes);
                             lastTxUpdate = now;
                         }
 
-                        if (offset < file.size) {
+                        if (txState.bytes < file.size) {
                             readSlice();
                         } else {
                             // Done
+                            txState.active = false;
                             ui.status.textContent = "Sent Successfully";
                             ui.status.classList.add('connected');
                             ui.progressContainer.style.display = 'none';
                             ui.filename.textContent = "Sent: " + file.name;
+                            showToast(`\ud83d\udce4 Sent: ${file.name}`);
                             addSentFileLog(file); // Add to history
                         }
                     } catch (err) {
                         console.error(err);
+                        txState.active = false;
                         showError("Transfer failed.");
                     }
                 };
