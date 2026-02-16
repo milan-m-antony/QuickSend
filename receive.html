@@ -1053,6 +1053,7 @@
             ui.btnSendFile.onclick = () => ui.fileInput.click();
             ui.fileInput.onchange = (e) => {
                 const file = e.target.files[0];
+                console.log("File Selected:", file);
                 if (file) startFileTransfer(file);
                 ui.fileInput.value = ''; // Reset
             };
@@ -1483,7 +1484,10 @@
             // --- Sending File Logic ---
 
             async function startFileTransfer(file) {
-                if (!file || !dataChannel) return;
+                if (!file || !dataChannel) { console.warn("No file or channel"); return; }
+                if (dataChannel.readyState !== 'open') { console.warn("Channel not open:", dataChannel.readyState); showError("Channel not ready"); return; }
+
+                console.log("Start Transfer:", file.name);
 
                 ui.filename.textContent = "Sending: " + file.name;
                 ui.filename.classList.remove('hidden');
@@ -1492,7 +1496,9 @@
                 totalSize = file.size; // Global for progress update reusing
 
                 // 1. Send Meta
-                dataChannel.send(JSON.stringify({ type: 'meta', name: file.name, size: file.size, mime: file.type }));
+                const meta = { type: 'meta', name: file.name, size: file.size, mime: file.type };
+                console.log("Sending Meta:", meta);
+                dataChannel.send(JSON.stringify(meta));
 
                 // 2. Send Chunks Optimized
                 const CHUNK_SIZE = 64 * 1024; // 64KB
