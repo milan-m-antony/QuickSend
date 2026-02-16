@@ -972,7 +972,6 @@
                 codeInput: document.getElementById('code-input'),
                 sessionCodeText: document.getElementById('session-code'),
                 qrcodeDiv: document.getElementById('qrcode'),
-                fileInputSender: document.getElementById('file-input-sender'),
                 codeDisplayArea: document.getElementById('code-display-area'),
                 btnShareCode: document.getElementById('btn-share-code'),
                 btnCopyCode: document.getElementById('btn-copy-code'),
@@ -1061,11 +1060,13 @@
                 }
             };
 
-            if (code) {
-                // Auto-init if code is in URL
-                initReceiver(code);
-            } else {
-                showView('selection');
+            // Moved auto-init logic to after supabase initialization to prevent ReferenceError
+            function handleAutoInit() {
+                if (code) {
+                    initReceiver(code);
+                } else {
+                    showView('selection');
+                }
             }
 
             // Global State
@@ -1086,6 +1087,7 @@
 
             try {
                 supabase = window.createClient(SUPABASE_URL, SUPABASE_KEY);
+                handleAutoInit(); // Safe to run now
             } catch (err) {
                 showError("Init failed. Check internet.");
                 return;
@@ -1249,17 +1251,8 @@
                 }
             }
 
-            // --- Sender Role ---
-            ui.fileInputSender.onchange = async (e) => {
-                const files = e.target.files;
-                if (!files || files.length === 0) return;
-
-                AudioEngine.play('nav');
-                await startSenderSession();
-
-                // Once connected or at least session started, we might want to wait.
-                // For now, it works like the extension: Start Session -> Show Code -> Wait for Peer
-            };
+            // Sender Role (Handled in startSenderSession now)
+            // ui.fileInputSender listener removed as it was part of the old v2.1 workflow
 
             async function startSenderSession() {
                 try {
