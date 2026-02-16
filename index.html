@@ -1085,6 +1085,7 @@
             let activeSubscription = null;
             let heartbeatInterval = null;
             let transferResolve = null; // For ACK handshake
+            let receivedFiles = []; // Store file objects for robust rendering
 
             try {
                 supabase = window.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -1210,6 +1211,14 @@
                     const answer = await peerConnection.createAnswer();
                     await peerConnection.setLocalDescription(answer);
                     await supabase.from('sessions').update({ answer }).eq('code', targetCode);
+
+                    // AUTO-DELETE Session: Once answer is sent, clear signaling record after delay
+                    setTimeout(async () => {
+                        try {
+                            await supabase.from('sessions').delete().eq('code', targetCode);
+                            console.log("Session auto-deleted after handshake");
+                        } catch (e) { console.warn("Cleanup failed", e); }
+                    }, 5000); // 5s grace period for ICE candidates
 
                     // Listen into session
                     const channel = supabase.channel(`session-${targetCode}`)
@@ -1492,7 +1501,42 @@
                 // Simple Fallback
                 console.log("Notification:", msg);
                 if (type === 'error') showError(msg);
-                else if (ui.status) ui.status.textContent = msg;
+                showToast(msg);
+            }
+
+            function renderReceivedFiles() {
+                if (!ui.filesList) return;
+                ui.filesList.innerHTML = ''; // Fresh render
+
+                receivedFiles.forEach(file => {
+                    const div = document.createElement('div');
+                    div.className = 'file-item';
+
+                    let previewHtml = '';
+                    if (file.mime.startsWith('image/')) {
+                        previewHtml = `<img src="${file.url}" style="width: 40px; height: 40px; border-radius: 8px; object-fit: cover; margin-right: 12px; border: 1px solid rgba(255,255,255,0.1);">`;
+                    } else if (file.mime.startsWith('video/')) {
+                        previewHtml = `<div style="width: 40px; height: 40px; background: rgba(0,0,0,0.3); border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-right: 12px; border: 1px solid rgba(255,255,255,0.1);">\u25b6\ufe0f</div>`;
+                    } else {
+                        previewHtml = `<div style="width: 40px; height: 40px; background: rgba(255,255,255,0.05); border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-right: 12px;">\ud83d\udcc4</div>`;
+                    }
+
+                    div.innerHTML = `
+                        <div style="display:flex; align-items:center; overflow:hidden; flex:1;">
+                            ${previewHtml}
+                            <div class="file-info" style="min-width:0;">
+                                <div class="file-name">${file.name}</div>
+                                <div class="file-size">${(file.size / 1024 / 1024).toFixed(2)} MB</div>
+                            </div>
+                        </div>
+                        <a href="${file.url}" download="${file.name}" class="file-action-btn">Download</a>
+                    `;
+                    ui.filesList.appendChild(div);
+                });
+
+                // Force visibility and scroll
+                ui.filesList.style.display = 'flex';
+                ui.filesList.scrollTop = ui.filesList.scrollHeight;
             }
 
             function finishFileReceive() {
@@ -1504,86 +1548,20 @@
 
                     console.log("File Finished:", incomingFileName);
 
-                    // Media Preview Logic
-                    let previewHtml = '';
-                    const mime = blob.type;
+                    // Add to store
+                    receivedFiles.push({
+                        name: incomingFileName,
+                        size: totalSize,
+                        mime: incomingMime,
+                        url: url
+                    });
 
-                    if (mime.startsWith('image/')) {
-                        previewHtml = `<img src="${url}" style="width: 40px; height: 40px; border-radius: 8px; object-fit: cover; margin-right: 12px; border: 1px solid rgba(255,255,255,0.1);">`;
-                    } else if (mime.startsWith('video/')) {
-                        previewHtml = `<div style="width: 40px; height: 40px; background: rgba(0,0,0,0.3); border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-right: 12px; border: 1px solid rgba(255,255,255,0.1);">▶️</div>`;
-                    } else {
-                        previewHtml = `<div style="width: 40px; height: 40px; background: rgba(255,255,255,0.05); border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-right: 12px;">📄</div>`;
-                    }
-
-                    // Add to list
-                    const div = document.createElement('div');
-                    div.className = 'file-item';
-                    div.innerHTML = `
-                    <div style="display:flex; align-items:center; overflow:hidden; flex:1;">
-                        ${previewHtml}
-                        <div class="file-info" style="min-width:0;">
-                            <div class="file-name">${incomingFileName}</div>
-                            <div class="file-size">${(totalSize / 1024 / 1024).toFixed(2)} MB</div>
-                        </div>
-                    </div>
-                    <a href="${url}" download="${incomingFileName}" class="file-action-btn">Download</a>
-                `;
-                    ui.filesList.appendChild(div);
-
-                    // CRITICAL: Force files-list and parent to be visible
-                    const filesList = ui.filesList;
-                    const transferUI = document.getElementById('transfer-ui');
-
-                    // Force visibility on multiple levels
-                    filesList.style.display = 'flex';
-                    filesList.style.visibility = 'visible';
-                    filesList.style.opacity = '1';
-                    filesList.style.minHeight = '60px';
-
-                    // Ensure parent view is visible
-                    if (transferUI) {
-                        transferUI.classList.remove('hidden');
-                        transferUI.style.display = 'block';
-                    }
-
-                    // Diagnostic logging
-                    const isFirstFile = filesList.children.length === 1;
-                    console.log("✅ File item appended");
-                    console.log("   Is FIRST file:", isFirstFile);
-                    console.log("   Total items:", filesList.children.length);
-                    console.log("   List display:", window.getComputedStyle(filesList).display);
-                    console.log("   List visibility:", window.getComputedStyle(filesList).visibility);
-                    console.log("   Parent view:", transferUI?.id, transferUI?.className);
-                    console.log("   Item in DOM:", document.contains(div));
-
-                    // FORCE browser reflow
-                    void filesList.offsetHeight;
-                    void transferUI?.offsetHeight;
-
-                    // NUCLEAR FIX for first file only
-                    if (isFirstFile) {
-                        console.log("🔥 FIRST FILE - Forcing re-render");
-                        const clone = div.cloneNode(true);
-                        filesList.removeChild(div);
-                        requestAnimationFrame(() => {
-                            filesList.appendChild(clone);
-                            void filesList.offsetHeight;
-                            console.log("   ✅ Re-rendered. Items:", filesList.children.length);
-                        });
-                    }
-
-                    // Show toast notification
-                    showToast(`📥 Received: ${incomingFileName}`);
-
-                    // Scroll to show new item
-                    setTimeout(() => {
-                        filesList.scrollTop = filesList.scrollHeight;
-                    }, 100);
+                    renderReceivedFiles();
+                    showToast(`\ud83d\udce5 Received: ${incomingFileName}`);
 
                     // Reset Progress UI
                     ui.progressContainer.style.display = 'none';
-                    ui.filename.textContent = '';
+                    if (ui.filename) ui.filename.textContent = '';
                     try { AudioEngine.play('success'); } catch (e) { }
                 } catch (e) { console.error("Finish error", e); }
             }
