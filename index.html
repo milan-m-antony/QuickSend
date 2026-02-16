@@ -1083,7 +1083,7 @@
                     <div class="nav-dot" data-page="2"></div>
                 </div>
 
-                <p style="margin-top:15px; font-size:11px; opacity:0.6; text-align:center;">v2.15 - Premium Release</p>
+                <p style="margin-top:15px; font-size:11px; opacity:0.6; text-align:center;">v2.16 - Premium Release</p>
             </div>
         </div>
     </div>
@@ -1119,7 +1119,7 @@
     <script src="config.js?v=2.1"></script>
 
     <script>
-        console.log("QuickSend v2.14 Loaded");
+        console.log("QuickSend v2.16 Loaded");
         window.addEventListener('load', function () {
             // --- Logic ---
             const urlParams = new URLSearchParams(window.location.search);
@@ -1175,15 +1175,13 @@
                 transfer: document.getElementById('transfer-ui')
             };
 
-            // WebRTC Config & TURN
+            // WebRTC Config (TURN now fetched securely via Supabase Function)
             let rtcConfig = {
                 iceServers: [
                     { urls: 'stun:stun.l.google.com:19302' },
                     { urls: 'stun:global.stun.twilio.com:3478' }
                 ]
             };
-            const METERED_API_KEY = "7901977ec1ad39f11335a956e16f677d8cb7";
-            const METERED_DOMAIN = "milanmantony.metered.live";
 
             // Interactive Background Logic
             document.addEventListener('mousemove', (e) => {
@@ -1220,14 +1218,20 @@
                 }
             };
 
-            // Promise that resolves when TURN is ready (or failed/timeout)
+            // Promise that resolves when TURN is ready (Securely via Edge Function)
             const turnReadyPromise = (async () => {
                 try {
-                    const res = await fetch(`https://${METERED_DOMAIN}/api/v1/turn/credentials?apiKey=${METERED_API_KEY}`);
-                    const servers = await res.json();
-                    rtcConfig.iceServers = [...rtcConfig.iceServers, ...servers];
-                    console.log("TURN Loaded (Mobile)");
-                } catch (e) { console.warn("TURN Fetch Failed", e); }
+                    // Call the Supabase Edge Function instead of Metered directly
+                    const { data, error } = await supabase.functions.invoke('get-turn-credentials');
+                    if (error) throw error;
+
+                    if (data && Array.isArray(data)) {
+                        rtcConfig.iceServers = [...rtcConfig.iceServers, ...data];
+                        console.log("Secure TURN Config Loaded");
+                    }
+                } catch (e) {
+                    console.warn("Secure TURN Fetch Failed - Falling back to STUN only", e);
+                }
             })();
 
             // Init Audio
