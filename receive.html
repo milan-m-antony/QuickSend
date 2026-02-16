@@ -759,22 +759,22 @@
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             color: white;
-            padding: 12px 24px;
-            border-radius: 24px;
+            padding: 12px 28px;
+            border-radius: 30px;
             border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
             z-index: 10000;
-            transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
             font-size: 14px;
             font-weight: 500;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
         }
 
         .toast.hidden {
             opacity: 0;
-            transform: translateX(-50%) translateY(-40px);
+            transform: translateX(-50%) translateY(-50px);
             pointer-events: none;
         }
     </style>
@@ -1086,6 +1086,7 @@
             let incomingFileName = "";
             let incomingMime = "";
             let receivedBlobUrls = [];
+            let isReceiving = false;
             let supabase;
             let sessionCode = null;
             let activeSubscription = null;
@@ -1451,15 +1452,14 @@
                         if (msg.type === 'ping') return; // Ignore heartbeats
                         if (msg.type === 'meta') {
                             // IDEMPOTENT GUARD: If we are already receiving THIS file, don't reset!
-                            // This fixes the 'First File' issue caused by redundant Meta packets.
-                            if (incomingFileName === msg.name && totalSize === msg.size && receivedChunks.length > 0) {
+                            if (isReceiving && incomingFileName === msg.name && totalSize === msg.size) {
                                 console.log("Ignoring redundant meta for active transfer");
                                 return;
                             }
 
                             console.log("RX Meta:", msg);
                             // Start Receive
-                            console.log("RX Meta Valid");
+                            isReceiving = true;
                             incomingFileName = msg.name;
                             totalSize = msg.size;
                             incomingMime = msg.mime;
@@ -1571,6 +1571,13 @@
 
                     renderReceivedFiles();
                     showToast(`\ud83d\udce5 Received: ${incomingFileName}`);
+
+                    // Reset State
+                    isReceiving = false;
+                    incomingFileName = "";
+                    receivedChunks = [];
+                    receivedBytes = 0;
+                    totalSize = 0;
 
                     // Reset Progress UI
                     ui.progressContainer.style.display = 'none';
