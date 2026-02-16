@@ -379,13 +379,19 @@
 
         /* Received Files List */
         .files-list {
-            max-height: 150px;
+            min-height: 80px !important;
+            max-height: 300px;
             overflow-y: auto;
-            display: flex;
+            display: flex !important;
             flex-direction: column;
             gap: 10px;
             margin: 10px 0;
-            padding-right: 5px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.02) !important;
+            border: 1px dashed rgba(0, 242, 255, 0.3) !important;
+            border-radius: 12px;
+            visibility: visible !important;
+            opacity: 1 !important;
         }
 
         .file-item {
