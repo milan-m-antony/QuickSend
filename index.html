@@ -1033,7 +1033,7 @@
     <script src="config.js?v=2.1"></script>
 
     <script>
-        console.log("QuickSend v2.1 Loaded");
+        console.log("QuickSend v2.12 Loaded");
         window.addEventListener('load', function () {
             // --- Logic ---
             const urlParams = new URLSearchParams(window.location.search);
@@ -1345,7 +1345,7 @@
                     sessionCode = targetCode;
 
                     // Real-time Signal Channel (SDP & ICE)
-                    const signalChannel = supabase.channel(`signal-${targetCode}`);
+                    const signalChannel = supabase.channel(`session-${targetCode}`);
 
                     signalChannel
                         .on('broadcast', { event: 'candidate' }, ({ payload }) => {
@@ -1388,7 +1388,10 @@
                     };
 
                     peerConnection.onconnectionstatechange = () => {
-                        if (peerConnection.connectionState === 'failed') updateStatus("Connection Failed", "error");
+                        console.log("Conn State:", peerConnection.connectionState);
+                        if (peerConnection.connectionState === 'connected') {
+                            updateStatus("Connected", "connected");
+                        }
                     };
 
                     peerConnection.ondatachannel = (e) => {
@@ -1404,7 +1407,7 @@
                     // Auto-cleanup helper
                     setTimeout(async () => {
                         try { await supabase.from('sessions').delete().eq('code', targetCode); } catch (e) { }
-                    }, 45000);
+                    }, 60000);
 
                 } catch (err) {
                     console.error(err);
@@ -1412,13 +1415,30 @@
                 }
             }
 
+            let iceBatch = [];
+            let iceBatchTimer = null;
+
             async function saveCandidateToDb(field, candidate, code) {
-                try {
-                    const { data } = await supabase.from('sessions').select(field).eq('code', code).maybeSingle();
-                    const current = data?.[field] || [];
-                    current.push(candidate);
-                    await supabase.from('sessions').update({ [field]: current }).eq('code', code);
-                } catch (e) { }
+                iceBatch.push(candidate);
+
+                if (iceBatchTimer) return;
+
+                iceBatchTimer = setTimeout(async () => {
+                    const toSend = [...iceBatch];
+                    iceBatch = [];
+                    iceBatchTimer = null;
+
+                    try {
+                        const { data } = await supabase.from('sessions').select(field).eq('code', code).maybeSingle();
+                        if (!data) return;
+                        const current = data[field] || [];
+                        const merged = [...current, ...toSend];
+                        // Filter duplicates
+                        const unique = merged.filter((v, i, a) => a.findIndex(t => t.candidate === v.candidate) === i);
+                        await supabase.from('sessions').update({ [field]: unique }).eq('code', code);
+                        console.log(`Batched ${toSend.length} ICE candidates to DB`);
+                    } catch (e) { console.error("ICE DB Error:", e); }
+                }, 250);
             }
 
             // Sender Role (Handled in startSenderSession now)
@@ -1482,7 +1502,7 @@
                     setupDataChannel(dataChannel);
 
                     // Real-time Signal Channel
-                    const signalChannel = supabase.channel(`signal-${sessionCode}`);
+                    const signalChannel = supabase.channel(`session-${sessionCode}`);
 
                     signalChannel
                         .on('broadcast', { event: 'candidate' }, ({ payload }) => {
@@ -1525,11 +1545,12 @@
                     const offer = await peerConnection.createOffer();
                     await peerConnection.setLocalDescription(offer);
 
-                    // Cleanup old sessions
-                    try { await supabase.from('sessions').delete().lt('created_at', new Date(Date.now() - 3600000).toISOString()); } catch (e) { }
-
+                    // Update with real offer
                     const { error } = await supabase.from('sessions').insert([{ code: sessionCode, offer: offer }]);
                     if (error) throw error;
+
+                    // Cleanup old sessions
+                    try { await supabase.from('sessions').delete().lt('created_at', new Date(Date.now() - 3600000).toISOString()); } catch (e) { }
 
                 } catch (err) {
                     console.error(err);
