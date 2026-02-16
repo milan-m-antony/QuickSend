@@ -1033,7 +1033,7 @@
     <script src="config.js?v=2.1"></script>
 
     <script>
-        console.log("QuickSend v2.13 Loaded");
+        console.log("QuickSend v2.14 Loaded");
         window.addEventListener('load', function () {
             // --- Logic ---
             const urlParams = new URLSearchParams(window.location.search);
@@ -1346,6 +1346,7 @@
                         return;
                     }
 
+                    await turnReadyPromise; // Mandatory for mobile/off-network stability
                     peerConnection = new RTCPeerConnection({ iceServers: rtcConfig.iceServers });
                     sessionCode = targetCode;
 
@@ -1491,6 +1492,7 @@
 
                     updateStatus("Waiting for peer...", "connecting");
 
+                    await turnReadyPromise; // Mandatory for mobile/off-network stability
                     peerConnection = new RTCPeerConnection({ iceServers: rtcConfig.iceServers });
 
                     peerConnection.onconnectionstatechange = () => {
@@ -1560,7 +1562,13 @@
                 }
             }
 
-            function resetApp() {
+            async function resetApp() {
+                // If we are in a session, delete the DB record to notify peer
+                if (sessionCode) {
+                    try { await supabase.from('sessions').delete().eq('code', sessionCode); } catch (e) { }
+                    sessionCode = null;
+                }
+
                 if (peerConnection) {
                     peerConnection.close();
                     peerConnection = null;
@@ -1583,6 +1591,11 @@
                 ui.progressContainer.style.display = 'none';
                 ui.btnSendFile.classList.add('disabled');
                 ui.btnPaste.classList.add('disabled');
+
+                // Reset progress HUD
+                ui.progressBar.style.width = '0%';
+                ui.progressText.textContent = '0%';
+                ui.eta.textContent = 'Calculating ETA...';
             }
 
             function setupDataChannel(channel) {
