@@ -1381,13 +1381,8 @@
                             if (ui.progressContainer) ui.progressContainer.style.display = 'block';
                             updateProgress(0);
 
-                            // Send ACK
-                            console.log("Sending ACK");
-                            if (dataChannel.readyState === 'open') dataChannel.send(JSON.stringify({ type: 'ack' }));
-
-                        } else if (msg.type === 'ack') {
-                            console.log("RX ACK");
-                            if (transferResolve) { transferResolve(); transferResolve = null; }
+                            // Send ACK - REMOVED for Speed/Reliability
+                            // Redundant Meta handling is safe (idempotent)
                         } else if (msg.type === 'chat') {
                             addChatMessage('received', msg.text);
                         } else if (msg.type === 'clipboard') {
@@ -1568,26 +1563,13 @@
                 try { dataChannel.send("warmup"); } catch (e) { }
                 await new Promise(r => setTimeout(r, 50));
 
-                // 1. Send Meta
+                // 1. Send Meta (Redundant to ensure delivery on first connect)
                 const meta = { type: 'meta', name: file.name, size: file.size, mime: file.type };
-                console.log("Sending Meta:", meta);
-                dataChannel.send(JSON.stringify(meta));
+                console.log("Sending Meta (x3):", meta);
 
-                // Wait for ACK (Handshake)
-                console.log("Waiting for ACK...");
-                try {
-                    await new Promise((resolve, reject) => {
-                        transferResolve = resolve;
-                        setTimeout(() => {
-                            if (transferResolve) { transferResolve = null; reject("ACK Timeout"); }
-                        }, 5000); // 5s timeout
-                    });
-                    console.log("ACK Received. Starting Transfer.");
-                } catch (e) {
-                    console.error(e);
-                    showError("Transfer Failed: Peer missing.");
-                    ui.progressContainer.style.display = 'none';
-                    return;
+                for (let i = 0; i < 3; i++) {
+                    dataChannel.send(JSON.stringify(meta));
+                    await new Promise(r => setTimeout(r, 100)); // 100ms wait
                 }
 
                 // 2. Send Chunks Optimized
