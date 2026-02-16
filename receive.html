@@ -379,19 +379,17 @@
 
         /* Received Files List */
         .files-list {
-            min-height: 80px !important;
-            max-height: 300px;
+            max-height: 350px;
             overflow-y: auto;
-            display: flex !important;
+            display: none;
+            /* Hidden by default */
             flex-direction: column;
-            gap: 10px;
-            margin: 10px 0;
-            padding: 10px;
-            background: rgba(255, 255, 255, 0.02) !important;
-            border: 1px dashed rgba(0, 242, 255, 0.3) !important;
+            gap: 12px;
+            margin: 15px 0;
+            padding: 5px;
             border-radius: 12px;
-            visibility: visible !important;
-            opacity: 1 !important;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
         }
 
         .file-item {
@@ -1482,10 +1480,12 @@
                             console.log("RX ACK (Global Handler)");
                         } else if (msg.type === 'chat') {
                             addChatMessage('received', msg.text);
+                            showToast(`💬 New Message: ${msg.text.substring(0, 20)}${msg.text.length > 20 ? '...' : ''}`);
                         } else if (msg.type === 'clipboard') {
                             navigator.clipboard.writeText(msg.text).then(() => {
                                 try { AudioEngine.play('copied'); } catch (e) { }
                                 addChatMessage('received', '📋 Copied to Clipboard!');
+                                showToast('📋 Clipboard Synced & Copied');
                             });
                         }
                     } else {
@@ -1518,6 +1518,13 @@
 
             function renderReceivedFiles() {
                 if (!ui.filesList) return;
+
+                if (receivedFiles.length === 0) {
+                    ui.filesList.style.display = 'none';
+                    return;
+                }
+
+                ui.filesList.style.display = 'flex'; // Show when files exist
                 ui.filesList.innerHTML = ''; // Fresh render
 
                 receivedFiles.forEach(file => {
@@ -1546,8 +1553,7 @@
                     ui.filesList.appendChild(div);
                 });
 
-                // Force visibility and scroll
-                ui.filesList.style.display = 'flex';
+                // Scroll to bottom
                 ui.filesList.scrollTop = ui.filesList.scrollHeight;
             }
 
@@ -1672,6 +1678,7 @@
                     <span style="color:var(--primary); font-size:12px; font-weight:500; margin-left:10px;">Sent ✓</span>
                 `;
                 ui.filesList.appendChild(div);
+                ui.filesList.style.display = 'flex'; // Show box
                 // Scroll to bottom
                 ui.filesList.scrollTop = ui.filesList.scrollHeight;
             }
