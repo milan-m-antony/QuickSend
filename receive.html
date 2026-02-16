@@ -1371,7 +1371,7 @@
                             receivedChunks = [];
                             startTime = Date.now();
 
-                            showNotification("Receiving File...", "info"); // Visual Feedback
+                            showNotificationWrapper("Receiving File...", "info"); // Visual Feedback
                             try { AudioEngine.play('receive'); } catch (e) { console.warn("Audio fail", e); }
 
                             if (ui.filename) {
@@ -1412,6 +1412,13 @@
                         }
                     }
                 } catch (e) { console.error("Msg Error", e); }
+            }
+
+            function showNotificationWrapper(msg, type) {
+                // Simple Fallback
+                console.log("Notification:", msg);
+                if (type === 'error') showError(msg);
+                else if (ui.status) ui.status.textContent = msg;
             }
 
             function finishFileReceive() {
