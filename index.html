@@ -1381,8 +1381,12 @@
                             if (ui.progressContainer) ui.progressContainer.style.display = 'block';
                             updateProgress(0);
 
-                            // Send ACK - REMOVED for Speed/Reliability
-                            // Redundant Meta handling is safe (idempotent)
+                            // Send ACK - Vital for Handshake
+                            try { dataChannel.send(JSON.stringify({ type: 'ack' })); } catch (e) { }
+
+                        } else if (msg.type === 'ack') {
+                            // Handled by Sender logic
+                            console.log("RX ACK (Global Handler)");
                         } else if (msg.type === 'chat') {
                             addChatMessage('received', msg.text);
                         } else if (msg.type === 'clipboard') {
@@ -1559,17 +1563,43 @@
                 startTime = Date.now();
                 totalSize = file.size; // Global for progress update reusing
 
-                // 0. Warmup Channel
-                try { dataChannel.send("warmup"); } catch (e) { }
-                await new Promise(r => setTimeout(r, 50));
-
-                // 1. Send Meta (Redundant to ensure delivery on first connect)
+                // 1. Reliable Handshake (Retry Loop)
                 const meta = { type: 'meta', name: file.name, size: file.size, mime: file.type };
-                console.log("Sending Meta (x3):", meta);
+                console.log("Starting Reliable Handshake...");
 
-                for (let i = 0; i < 3; i++) {
+                let ackReceived = false;
+                const ackListener = (event) => {
+                    try {
+                        const msg = JSON.parse(event.data);
+                        if (msg.type === 'ack') ackReceived = true;
+                    } catch (e) { }
+                };
+                dataChannel.addEventListener('message', ackListener);
+
+                // Try 10 times (10 seconds)
+                for (let i = 0; i < 10; i++) {
+                    if (ackReceived) {
+                        console.log("Handshake Success!");
+                        break;
+                    }
+                    console.log(`Sending Meta (Attempt ${i + 1}/10)`, meta);
                     dataChannel.send(JSON.stringify(meta));
-                    await new Promise(r => setTimeout(r, 100)); // 100ms wait
+
+                    // Wait 1s for ACK (blocking)
+                    // Check every 100ms to exit early
+                    for (let w = 0; w < 10; w++) {
+                        if (ackReceived) break;
+                        await new Promise(r => setTimeout(r, 100));
+                    }
+                }
+
+                dataChannel.removeEventListener('message', ackListener);
+
+                if (!ackReceived) {
+                    console.error("Handshake Failed: No ACK from Receiver");
+                    ui.progressContainer.style.display = 'none';
+                    showError("Connection unstable. Please try again.");
+                    return;
                 }
 
                 // 2. Send Chunks Optimized
