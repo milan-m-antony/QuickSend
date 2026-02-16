@@ -123,6 +123,96 @@
             }
         }
 
+        /* Drag & Drop Visual State */
+        .drag-over {
+            border: 2px dashed var(--accent) !important;
+            background: rgba(0, 242, 255, 0.05) !important;
+        }
+
+        /* Preview Modal */
+        .preview-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 10001;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .preview-content {
+            max-width: 90%;
+            max-height: 80%;
+            border-radius: 12px;
+            object-fit: contain;
+        }
+
+        .preview-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: white;
+            font-size: 32px;
+            cursor: pointer;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+        }
+
+        /* Nickname Input */
+        .nickname-group {
+            margin-bottom: 10px;
+            text-align: left;
+            width: 100%;
+        }
+
+        .nickname-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            padding: 12px 16px;
+            border-radius: 12px;
+            color: white;
+            font-family: inherit;
+            outline: none;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+
+        .nickname-input:focus {
+            border-color: var(--accent);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .btn-cancel-transfer {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--error);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            padding: 10px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 15px;
+            width: 100%;
+            transition: all 0.2s;
+        }
+
+        .btn-cancel-transfer:active {
+            background: var(--error);
+            color: white;
+        }
+
         .container {
             width: 90%;
             max-width: 450px;
@@ -802,20 +892,26 @@
 
         <!-- Mode Selection -->
         <div id="mode-selection" class="view">
-            <button id="btn-send-mode" class="card-btn">
-                <div class="icon">📤</div>
-                <div class="text">
-                    <h3>Send File</h3>
-                    <p>Start a new session</p>
-                </div>
-            </button>
-            <button id="btn-receive-mode" class="card-btn">
-                <div class="icon">📥</div>
-                <div class="text">
-                    <h3>Receive File</h3>
-                    <p>Enter code to connect</p>
-                </div>
-            </button>
+            <div class="nickname-group">
+                <input type="text" id="nickname-input" class="nickname-input"
+                    placeholder="Your Nickname (e.g. Milan's iPhone)" maxlength="20">
+            </div>
+            <div class="modes-grid">
+                <button id="btn-send-mode" class="card-btn">
+                    <div class="icon">📤</div>
+                    <div class="text">
+                        <h3>Send File</h3>
+                        <p>Start a new session</p>
+                    </div>
+                </button>
+                <button id="btn-receive-mode" class="card-btn">
+                    <div class="icon">📥</div>
+                    <div class="text">
+                        <h3>Receive File</h3>
+                        <p>Enter code to connect</p>
+                    </div>
+                </button>
+            </div>
         </div>
 
         <!-- Sender View (Waiting for Connection) -->
@@ -862,6 +958,9 @@
                     <span id="percent">0%</span>
                     <span id="speed">0 MB/s</span>
                 </div>
+                <div id="eta" style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">Calculating ETA...
+                </div>
+                <button id="btn-cancel-transfer" class="btn-cancel-transfer hidden">Cancel Transfer</button>
             </div>
 
             <div id="files-list" class="files-list">
@@ -889,16 +988,16 @@
         <div id="info-overlay" class="info-overlay hidden">
             <div class="info-content">
                 <button id="info-close" class="close-btn">&times;</button>
-                <h2>Quick Start</h2>
+                <h2>Quick Guide 🚀</h2>
                 <ul>
-                    <li><strong>1. Connect:</strong> Open QuickSend on PC. Scan the QR code with Mobile.</li>
-                    <li><strong>2. Send:</strong> Tap "Send File" to transfer photos/videos instantly.</li>
-                    <li><strong>3. Receive:</strong> Files appear automatically. Click "Download" to save.</li>
-                    <li><strong>4. Install Extension:</strong> For the best experience on PC, download the <a
-                            href="https://github.com/milan-m-antony/QuickSend.git" target="_blank"
-                            style="color:var(--primary);">Chrome Extension</a>.</li>
+                    <li><strong>🤝 Connect:</strong> Scan the QR or use the 6-digit code to link devices.</li>
+                    <li><strong>📁 Send:</strong> Pick files, paste text, or <b>drag & drop</b> anywhere on desktop.
+                    </li>
+                    <li><strong>🖼️ Preview:</strong> Click any image/video in history to view it instantly.</li>
+                    <li><strong>⚡ HUD:</strong> Track real-time speed, % progress, and remaining time.</li>
+                    <li><strong>🛑 Control:</strong> Cancel transfers mid-way if needed.</li>
                 </ul>
-                <p style="margin-top:15px; font-size:12px; opacity:0.7;">v2.1 - Secure P2P - No Cloud Storage</p>
+                <p style="margin-top:15px; font-size:12px; opacity:0.7;">v2.9 - Premium Release - Secure P2P</p>
             </div>
         </div>
     </div>
@@ -977,7 +1076,10 @@
                 btnShareCode: document.getElementById('btn-share-code'),
                 btnCopyCode: document.getElementById('btn-copy-code'),
                 btnExitSession: document.getElementById('btn-exit-session'),
-                toast: document.getElementById('toast')
+                toast: document.getElementById('toast'),
+                nicknameInput: document.getElementById('nickname-input'),
+                eta: document.getElementById('eta'),
+                btnCancelTransfer: document.getElementById('btn-cancel-transfer')
             };
 
             const views = {
@@ -996,6 +1098,41 @@
             };
             const METERED_API_KEY = "7901977ec1ad39f11335a956e16f677d8cb7";
             const METERED_DOMAIN = "milanmantony.metered.live";
+
+            // Interactive Background Logic
+            document.addEventListener('mousemove', (e) => {
+                const x = (e.clientX / window.innerWidth - 0.5) * 40;
+                const y = (e.clientY / window.innerHeight - 0.5) * 40;
+                document.querySelector('.blob-1').style.transform = `translate(${x}px, ${y}px)`;
+                document.querySelector('.blob-2').style.transform = `translate(${-x}px, ${-y}px)`;
+            });
+
+            // Nickname Persistence
+            ui.nicknameInput.value = localStorage.getItem('qs-nickname') || '';
+            ui.nicknameInput.onchange = (e) => localStorage.setItem('qs-nickname', e.target.value);
+
+            // Drag & Drop
+            document.ondragover = (e) => {
+                e.preventDefault();
+                if (!views.transfer.classList.contains('hidden')) {
+                    ui.filesList.classList.add('drag-over');
+                }
+            };
+            document.ondragleave = () => ui.filesList.classList.remove('drag-over');
+            document.ondrop = async (e) => {
+                e.preventDefault();
+                ui.filesList.classList.remove('drag-over');
+                if (views.transfer.classList.contains('hidden')) {
+                    showToast("Connect first to send files");
+                    return;
+                }
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    for (let i = 0; i < files.length; i++) {
+                        await startFileTransfer(files[i]);
+                    }
+                }
+            };
 
             // Promise that resolves when TURN is ready (or failed/timeout)
             const turnReadyPromise = (async () => {
@@ -1084,6 +1221,7 @@
             let rxState = { active: false, fileName: "", mime: "", size: 0, chunks: [], bytes: 0, startTime: 0 };
             let txState = { active: false, fileName: "", size: 0, bytes: 0, startTime: 0 };
 
+            let abortTransfer = false;
             const receivedBlobUrls = [];
 
             try {
@@ -1484,7 +1622,8 @@
                             rxState.bytes = 0;
                             rxState.startTime = Date.now();
 
-                            showNotificationWrapper("Receiving File...", "info");
+                            const senderName = msg.sender || 'Peer';
+                            showNotificationWrapper(`Receiving ${msg.name} from ${senderName}`, "info");
                             try { AudioEngine.play('receive'); } catch (e) { }
 
                             if (ui.filename) {
@@ -1555,9 +1694,9 @@
 
                     let previewHtml = '';
                     if (item.mime && item.mime.startsWith('image/')) {
-                        previewHtml = `<img src="${item.url}" style="width: 40px; height: 40px; border-radius: 8px; object-fit: cover; margin-right: 12px; border: 1px solid rgba(255,255,255,0.1);">`;
+                        previewHtml = `<img src="${item.url}" onclick="openPreview('${item.url}', 'image')" style="width: 40px; height: 40px; border-radius: 8px; object-fit: cover; margin-right: 12px; border: 1px solid rgba(255,255,255,0.1); cursor:pointer;">`;
                     } else if (item.mime && item.mime.startsWith('video/')) {
-                        previewHtml = `<div style="width: 40px; height: 40px; background: rgba(0,0,0,0.3); border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-right: 12px; border: 1px solid rgba(255,255,255,0.1);">\u25b6\ufe0f</div>`;
+                        previewHtml = `<div onclick="openPreview('${item.url}', 'video')" style="width: 40px; height: 40px; background: rgba(0,0,0,0.3); border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-right: 12px; border: 1px solid rgba(255,255,255,0.1); cursor:pointer;">\u25b6\ufe0f</div>`;
                     } else {
                         previewHtml = `<div style="width: 40px; height: 40px; background: rgba(255,255,255,0.05); border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-right: 12px;">\ud83d\udcc4</div>`;
                     }
@@ -1632,19 +1771,45 @@
                 });
             }
 
+            function openPreview(url, type) {
+                const modal = document.createElement('div');
+                modal.className = 'preview-modal';
+                let content = '';
+                if (type === 'image') {
+                    content = `<img src="${url}" class="preview-content">`;
+                } else {
+                    content = `<video src="${url}" controls autoplay class="preview-content"></video>`;
+                }
+                modal.innerHTML = `
+                    <div class="preview-close" onclick="this.parentElement.remove()">&times;</div>
+                    ${content}
+                    <a href="${url}" download="QuickSend_Media" class="primary-btn" style="width:auto; margin-top:20px; padding: 12px 30px;">Download Original</a>
+                `;
+                document.body.appendChild(modal);
+            }
+
             function updateProgress(bytes) {
-                // Determine which state is active
-                const state = rxState.active ? rxState : (txState.active ? txState : null);
-                if (!state || !state.size) return;
+                if (!txState.active && !rxState.active) return;
+                const state = txState.active ? txState : rxState;
+                const progress = (bytes / state.size) * 100;
+                ui.progressBar.style.width = progress + "%";
+                ui.percent.textContent = Math.round(progress) + "%";
 
-                const percent = Math.floor((bytes / state.size) * 100);
-                ui.progressBar.style.width = percent + '%';
-                ui.percent.textContent = percent + '%';
+                const elapsed = (Date.now() - state.startTime) / 1000;
+                const mbps = (bytes / (1024 * 1024)) / elapsed;
+                ui.speed.textContent = mbps.toFixed(2) + " MB/s";
 
-                const duration = (Date.now() - state.startTime) / 1000;
-                if (duration > 0) {
-                    const speed = (bytes / 1024 / 1024) / duration;
-                    ui.speed.textContent = speed.toFixed(1) + ' MB/s';
+                // ETA Logic
+                if (bytes > 0 && progress < 100) {
+                    const remainingBytes = state.size - bytes;
+                    const remainingSeconds = remainingBytes / (bytes / elapsed);
+                    if (remainingSeconds > 60) {
+                        ui.eta.textContent = "About " + Math.ceil(remainingSeconds / 60) + "m remaining";
+                    } else {
+                        ui.eta.textContent = Math.ceil(remainingSeconds) + "s remaining";
+                    }
+                } else {
+                    ui.eta.textContent = "Finishing...";
                 }
             }
 
@@ -1711,9 +1876,22 @@
                     ui.filename.textContent = "Sending: " + file.name;
                     ui.filename.classList.remove('hidden');
                     ui.progressContainer.style.display = 'block';
+                    ui.btnCancelTransfer.classList.remove('hidden');
+                    abortTransfer = false;
+
+                    ui.btnCancelTransfer.onclick = () => {
+                        abortTransfer = true;
+                        showToast("Cancelling...");
+                    };
 
                     // 1. Reliable Handshake (Retry Loop)
-                    const meta = { type: 'meta', name: file.name, size: file.size, mime: file.type };
+                    const meta = {
+                        type: 'meta',
+                        name: file.name,
+                        size: file.size,
+                        mime: file.type,
+                        sender: ui.nicknameInput.value || 'Anonymous'
+                    };
                     console.log("Starting Reliable Handshake...");
 
                     let ackReceived = false;
@@ -1778,6 +1956,15 @@
                                 });
                             }
 
+                            if (abortTransfer) {
+                                txState.active = false;
+                                ui.progressContainer.style.display = 'none';
+                                ui.btnCancelTransfer.classList.add('hidden');
+                                showToast("Transfer Cancelled");
+                                resolve(); // Move to next file
+                                return;
+                            }
+
                             dataChannel.send(buffer);
                             txState.bytes += buffer.byteLength;
 
@@ -1794,6 +1981,7 @@
                                 ui.status.textContent = "Sent Successfully";
                                 ui.status.classList.add('connected');
                                 ui.progressContainer.style.display = 'none';
+                                ui.btnCancelTransfer.classList.add('hidden');
                                 ui.filename.textContent = "Sent: " + file.name;
                                 showToast(`\ud83d\udce4 Sent: ${file.name}`);
                                 addSentFileLog(file);

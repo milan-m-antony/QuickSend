@@ -30,14 +30,16 @@ Don't want to install the extension? Just visit our web app:
 ### Sending Files:
 1.  Open the Extension or Web App.
 2.  Click **Send Mode**.
-3.  Select files or drag & drop.
+3.  Select files, paste text, or **Drag & Drop** anywhere on the screen (Desktop only).
 4.  Scan the QR code with any device (or share the link).
-5.  Transfer starts instantly!
+5.  Watch the **Real-time HUD** for speed and ETA stats.
 
 ### Receiving Files:
 1.  Open the link or scan the QR code.
 2.  Or enter the 6-digit session code manually.
-3.  Files download automatically.
+3.  Files appear in the **Unified History**.
+4.  Tap any Image or Video to **Preview** it instantly.
+5.  Click **Download** to save files permanently.
 
 ---
 
