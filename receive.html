@@ -892,12 +892,13 @@
     </div>
 
     <!-- Libs -->
-    <script src="libs/audio.js?v=2.0"></script>
-    <script src="libs/supabase.js?v=2.0"></script>
-    <script src="libs/qrcode.js?v=2.0"></script>
-    <script src="config.js?v=2.0"></script>
+    <script src="libs/audio.js?v=2.1"></script>
+    <script src="libs/supabase.js?v=2.1"></script>
+    <script src="libs/qrcode.js?v=2.1"></script>
+    <script src="config.js?v=2.1"></script>
 
     <script>
+        console.log("QuickSend v2.1 Loaded");
         window.addEventListener('load', function () {
             // --- Logic ---
             const urlParams = new URLSearchParams(window.location.search);
@@ -1430,6 +1431,12 @@
                 `;
                     ui.filesList.appendChild(div);
 
+                    // Force Redraw Hack
+                    ui.filesList.style.display = 'none';
+                    ui.filesList.offsetHeight; // Trigger reflow
+                    ui.filesList.style.display = 'flex';
+                    ui.filesList.scrollTop = ui.filesList.scrollHeight;
+
                     // Reset Progress UI
                     ui.progressContainer.style.display = 'none';
                     ui.filename.textContent = '';
@@ -1539,8 +1546,8 @@
                 console.log("Sending Meta:", meta);
                 dataChannel.send(JSON.stringify(meta));
 
-                // Small delay to ensure Meta arrives first
-                await new Promise(r => setTimeout(r, 100)); // 100ms delay
+                // Small delay to ensure Meta arrives first and Receiver is ready
+                await new Promise(r => setTimeout(r, 500)); // 500ms delay
 
                 // 2. Send Chunks Optimized
                 const CHUNK_SIZE = 64 * 1024; // 64KB
