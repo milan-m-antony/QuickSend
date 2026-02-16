@@ -1457,14 +1457,19 @@
                 `;
                     ui.filesList.appendChild(div);
 
-                    // Force Redraw Hack - Heavy Hammer
-                    ui.filesList.style.display = 'flex'; // Ensure flex
-                    ui.filesList.style.visibility = 'visible';
-                    ui.filesList.style.opacity = '1';
+                    // Diagnostic logging
+                    console.log("File item appended. Total items:", ui.filesList.children.length);
+                    console.log("List display:", window.getComputedStyle(ui.filesList).display);
+
+                    // Ensure list is visible (simpler approach)
+                    if (ui.filesList.style.display === 'none') {
+                        ui.filesList.style.display = 'flex';
+                    }
+
+                    // Scroll to show new item
                     setTimeout(() => {
-                        // Scroll to bottom after render
                         ui.filesList.scrollTop = ui.filesList.scrollHeight;
-                    }, 50);
+                    }, 100);
 
                     // Reset Progress UI
                     ui.progressContainer.style.display = 'none';
