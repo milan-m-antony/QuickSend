@@ -1341,30 +1341,57 @@
                         return;
                     }
 
-                    await turnReadyPromise;
                     peerConnection = new RTCPeerConnection({ iceServers: rtcConfig.iceServers });
                     sessionCode = targetCode;
 
-                    peerConnection.onconnectionstatechange = () => {
-                        const state = peerConnection.connectionState;
-                        if (state === 'failed' || state === 'disconnected' || state === 'closed') {
-                            updateStatus("Connection Lost", "error");
+                    // Real-time Signal Channel (SDP & ICE)
+                    const signalChannel = supabase.channel(`signal-${targetCode}`);
+
+                    signalChannel
+                        .on('broadcast', { event: 'candidate' }, ({ payload }) => {
+                            if (payload) peerConnection.addIceCandidate(new RTCIceCandidate(payload)).catch(() => { });
+                        })
+                        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sessions', filter: `code=eq.${targetCode}` }, payload => {
+                            const data = payload.new;
+                            // Check for late candidates via DB fallback
+                            if (data.sender_ice) {
+                                data.sender_ice.forEach(c => peerConnection.addIceCandidate(new RTCIceCandidate(c)).catch(() => { }));
+                            }
+                        })
+                        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'sessions', filter: `code=eq.${targetCode}` }, () => {
+                            setTimeout(() => {
+                                if (!dataChannel || dataChannel.readyState !== 'open') {
+                                    updateStatus("Peer Disconnected", 'error');
+                                }
+                            }, 1000);
+                        })
+                        .subscribe(async (status) => {
+                            if (status === 'SUBSCRIBED') {
+                                // Add existing candidates from DB if any
+                                if (session.sender_ice) {
+                                    session.sender_ice.forEach(c => peerConnection.addIceCandidate(new RTCIceCandidate(c)).catch(() => { }));
+                                }
+                            }
+                        });
+
+                    activeSubscription = signalChannel;
+
+                    peerConnection.onicecandidate = (e) => {
+                        if (e.candidate) {
+                            // 1. Fast Broadcast
+                            signalChannel.send({ type: 'broadcast', event: 'candidate', payload: e.candidate });
+                            // 2. DB Fallback (Batch for reliability)
+                            saveCandidateToDb('receiver_ice', e.candidate, targetCode);
                         }
                     };
 
-                    // Handle Incoming Data Channel (from PC or another mobile)
+                    peerConnection.onconnectionstatechange = () => {
+                        if (peerConnection.connectionState === 'failed') updateStatus("Connection Failed", "error");
+                    };
+
                     peerConnection.ondatachannel = (e) => {
                         dataChannel = e.channel;
                         setupDataChannel(dataChannel);
-                    };
-
-                    peerConnection.onicecandidate = async (e) => {
-                        if (e.candidate) {
-                            const { data } = await supabase.from('sessions').select('receiver_ice').eq('code', targetCode).maybeSingle();
-                            const current = data?.receiver_ice || [];
-                            current.push(e.candidate);
-                            await supabase.from('sessions').update({ receiver_ice: current }).eq('code', targetCode);
-                        }
                     };
 
                     await peerConnection.setRemoteDescription(new RTCSessionDescription(session.offer));
@@ -1372,42 +1399,24 @@
                     await peerConnection.setLocalDescription(answer);
                     await supabase.from('sessions').update({ answer }).eq('code', targetCode);
 
-                    // AUTO-DELETE Session: Increase grace period to 30s for mobile users
-                    setTimeout(async () => {
-                        try {
-                            // Only delete if we are actually connected or if it's been a while
-                            await supabase.from('sessions').delete().eq('code', targetCode);
-                            console.log("Signaling record cleaned.");
-                        } catch (e) { }
-                    }, 30000);
-
-                    // Listen into session
-                    const channel = supabase.channel(`session-${targetCode}`)
-                        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sessions', filter: `code=eq.${targetCode}` }, payload => {
-                            const data = payload.new;
-                            if (data.sender_ice) {
-                                data.sender_ice.forEach(c => {
-                                    peerConnection.addIceCandidate(new RTCIceCandidate(c)).catch(() => { });
-                                });
-                            }
-                        })
-                        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'sessions', filter: `code=eq.${targetCode}` }, () => {
-                            // Delay slightly to avoid race with channel open
-                            setTimeout(() => {
-                                if (!dataChannel || dataChannel.readyState !== 'open') {
-                                    updateStatus("Peer Disconnected", 'error');
-                                    ui.btnSendFile.classList.add('disabled');
-                                    ui.btnPaste.classList.add('disabled');
-                                }
-                            }, 500);
-                        })
-                        .subscribe();
-                    activeSubscription = channel;
+                    // Auto-cleanup helper
+                    setTimeout(() => {
+                        supabase.from('sessions').delete().eq('code', targetCode).catch(() => { });
+                    }, 45000);
 
                 } catch (err) {
                     console.error(err);
                     showError("Connection failed.");
                 }
+            }
+
+            async function saveCandidateToDb(field, candidate, code) {
+                try {
+                    const { data } = await supabase.from('sessions').select(field).eq('code', code).maybeSingle();
+                    const current = data?.[field] || [];
+                    current.push(candidate);
+                    await supabase.from('sessions').update({ [field]: current }).eq('code', code);
+                } catch (e) { }
             }
 
             // Sender Role (Handled in startSenderSession now)
@@ -1465,72 +1474,56 @@
 
                     updateStatus("Waiting for peer...", "connecting");
 
-                    await turnReadyPromise;
                     peerConnection = new RTCPeerConnection({ iceServers: rtcConfig.iceServers });
-
-                    peerConnection.onconnectionstatechange = () => {
-                        const state = peerConnection.connectionState;
-                        if (state === 'failed' || state === 'disconnected' || state === 'closed') {
-                            updateStatus("Connection Lost", "error");
-                        }
-                    };
 
                     dataChannel = peerConnection.createDataChannel("sendDataChannel", { reliable: true });
                     setupDataChannel(dataChannel);
 
-                    const offer = await peerConnection.createOffer();
-                    await peerConnection.setLocalDescription(offer);
+                    // Real-time Signal Channel
+                    const signalChannel = supabase.channel(`signal-${sessionCode}`);
 
-
-                    // Cleanup old sessions (older than 1 hour)
-                    try {
-                        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-                        await supabase.from('sessions').delete().lt('created_at', oneHourAgo);
-                        console.log("Cleaned up old sessions");
-                    } catch (cleanupErr) {
-                        console.warn("Session cleanup failed:", cleanupErr);
-                    }
-
-                    const { error } = await supabase.from('sessions').insert([{ code: sessionCode, offer: offer }]);
-                    if (error) throw error;
-
-                    peerConnection.onicecandidate = async (e) => {
-                        if (e.candidate) {
-                            const { data } = await supabase.from('sessions').select('sender_ice').eq('code', sessionCode).maybeSingle();
-                            const current = data?.sender_ice || [];
-                            current.push(e.candidate);
-                            await supabase.from('sessions').update({ sender_ice: current }).eq('code', sessionCode);
-                        }
-                    };
-
-                    // Listen for Answer
-                    const channel = supabase.channel(`session-${sessionCode}`)
+                    signalChannel
+                        .on('broadcast', { event: 'candidate' }, ({ payload }) => {
+                            if (payload) peerConnection.addIceCandidate(new RTCIceCandidate(payload)).catch(() => { });
+                        })
                         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sessions', filter: `code=eq.${sessionCode}` }, async (payload) => {
                             const data = payload.new;
                             if (data.answer && peerConnection.signalingState !== 'stable') {
                                 try {
                                     await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
                                     showView('transfer');
-                                } catch (e) { console.warn("SDP Set Failed (Race?)", e); }
+                                } catch (e) { }
                             }
                             if (data.receiver_ice) {
-                                data.receiver_ice.forEach(c => {
-                                    peerConnection.addIceCandidate(new RTCIceCandidate(c)).catch(() => { });
-                                });
+                                data.receiver_ice.forEach(c => peerConnection.addIceCandidate(new RTCIceCandidate(c)).catch(() => { }));
                             }
                         })
                         .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'sessions', filter: `code=eq.${sessionCode}` }, () => {
-                            // Delay slightly to avoid race with channel open
                             setTimeout(() => {
                                 if (!dataChannel || dataChannel.readyState !== 'open') {
                                     updateStatus("Peer Disconnected", 'error');
-                                    ui.btnSendFile.classList.add('disabled');
-                                    ui.btnPaste.classList.add('disabled');
                                 }
-                            }, 500);
+                            }, 1000);
                         })
                         .subscribe();
-                    activeSubscription = channel;
+
+                    activeSubscription = signalChannel;
+
+                    peerConnection.onicecandidate = (e) => {
+                        if (e.candidate) {
+                            signalChannel.send({ type: 'broadcast', event: 'candidate', payload: e.candidate });
+                            saveCandidateToDb('sender_ice', e.candidate, sessionCode);
+                        }
+                    };
+
+                    const offer = await peerConnection.createOffer();
+                    await peerConnection.setLocalDescription(offer);
+
+                    // Cleanup old sessions
+                    supabase.from('sessions').delete().lt('created_at', new Date(Date.now() - 3600000).toISOString()).catch(() => { });
+
+                    const { error } = await supabase.from('sessions').insert([{ code: sessionCode, offer: offer }]);
+                    if (error) throw error;
 
                 } catch (err) {
                     console.error(err);
