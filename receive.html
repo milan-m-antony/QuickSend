@@ -1037,7 +1037,8 @@
             let receivedChunks = [];
             let receivedBlobUrls = [];
             let supabase;
-            let sessionCode = null; // Track globally for cleanup
+            let sessionCode = null;
+            let activeSubscription = null;
             let heartbeatInterval = null;
 
             try {
@@ -1158,7 +1159,7 @@
                     await supabase.from('sessions').update({ answer }).eq('code', targetCode);
 
                     // Listen into session
-                    supabase.channel(`session-${targetCode}`)
+                    const channel = supabase.channel(`session-${targetCode}`)
                         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sessions', filter: `code=eq.${targetCode}` }, payload => {
                             const data = payload.new;
                             if (data.sender_ice) {
@@ -1173,6 +1174,7 @@
                             ui.btnPaste.classList.add('disabled');
                         })
                         .subscribe();
+                    activeSubscription = channel;
 
                 } catch (err) {
                     console.error(err);
@@ -1252,7 +1254,8 @@
                     };
 
                     // Listen for Answer
-                    supabase.channel(`session-${sessionCode}`)
+                    // Listen for Answer
+                    const channel = supabase.channel(`session-${sessionCode}`)
                         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sessions', filter: `code=eq.${sessionCode}` }, async (payload) => {
                             const data = payload.new;
                             if (data.answer && peerConnection.signalingState !== 'stable') {
@@ -1271,6 +1274,7 @@
                             ui.btnPaste.classList.add('disabled');
                         })
                         .subscribe();
+                    activeSubscription = channel;
 
                 } catch (err) {
                     console.error(err);
@@ -1286,6 +1290,10 @@
                 if (heartbeatInterval) {
                     clearInterval(heartbeatInterval);
                     heartbeatInterval = null;
+                }
+                if (activeSubscription) {
+                    supabase.removeChannel(activeSubscription);
+                    activeSubscription = null;
                 }
                 showView('selection');
                 ui.codeDisplayArea.classList.add('hidden');
