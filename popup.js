@@ -736,7 +736,7 @@ function listenToSessionChanges(code) {
 
 // --- File Transfer Logic ---
 
-const CHUNK_SIZE = 256 * 1024; // 256KB for potentially faster transfer speeds
+const CHUNK_SIZE = 64 * 1024; // 64KB - Safer for mobile/TURN
 
 async function startFileTransfer() {
     if (!currentFile || !dataChannel) return;
@@ -756,6 +756,7 @@ async function startFileTransfer() {
         size: currentFile.size,
         mime: currentFile.type
     };
+    console.log("Sending Meta:", meta);
     dataChannel.send(JSON.stringify(meta));
 
     // 2. Send Chunks
@@ -764,7 +765,7 @@ async function startFileTransfer() {
     let lastUIUpdate = 0;
 
     // Set very low buffer threshold for event-based backpressure with large chunks
-    dataChannel.bufferedAmountLowThreshold = 256 * 1024;
+    dataChannel.bufferedAmountLowThreshold = 64 * 1024;
 
     function readSlice() {
         if (offset >= currentFile.size) return;

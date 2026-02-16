@@ -1259,8 +1259,10 @@
                         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sessions', filter: `code=eq.${sessionCode}` }, async (payload) => {
                             const data = payload.new;
                             if (data.answer && peerConnection.signalingState !== 'stable') {
-                                await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
-                                showView('transfer');
+                                try {
+                                    await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+                                    showView('transfer');
+                                } catch (e) { console.warn("SDP Set Failed (Race?)", e); }
                             }
                             if (data.receiver_ice) {
                                 data.receiver_ice.forEach(c => {
