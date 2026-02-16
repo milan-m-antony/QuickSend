@@ -1378,9 +1378,11 @@
 
                     peerConnection.onicecandidate = (e) => {
                         if (e.candidate) {
-                            // 1. Fast Broadcast
-                            signalChannel.send({ type: 'broadcast', event: 'candidate', payload: e.candidate });
-                            // 2. DB Fallback (Batch for reliability)
+                            // 1. Fast Broadcast (only if channel is open)
+                            if (signalChannel.state === 'joined') {
+                                signalChannel.send({ type: 'broadcast', event: 'candidate', payload: e.candidate });
+                            }
+                            // 2. DB Fallback
                             saveCandidateToDb('receiver_ice', e.candidate, targetCode);
                         }
                     };
@@ -1400,8 +1402,8 @@
                     await supabase.from('sessions').update({ answer }).eq('code', targetCode);
 
                     // Auto-cleanup helper
-                    setTimeout(() => {
-                        supabase.from('sessions').delete().eq('code', targetCode).catch(() => { });
+                    setTimeout(async () => {
+                        try { await supabase.from('sessions').delete().eq('code', targetCode); } catch (e) { }
                     }, 45000);
 
                 } catch (err) {
@@ -1511,7 +1513,11 @@
 
                     peerConnection.onicecandidate = (e) => {
                         if (e.candidate) {
-                            signalChannel.send({ type: 'broadcast', event: 'candidate', payload: e.candidate });
+                            // 1. Fast Broadcast (only if channel is open)
+                            if (signalChannel.state === 'joined') {
+                                signalChannel.send({ type: 'broadcast', event: 'candidate', payload: e.candidate });
+                            }
+                            // 2. DB Fallback
                             saveCandidateToDb('sender_ice', e.candidate, sessionCode);
                         }
                     };
@@ -1520,7 +1526,7 @@
                     await peerConnection.setLocalDescription(offer);
 
                     // Cleanup old sessions
-                    supabase.from('sessions').delete().lt('created_at', new Date(Date.now() - 3600000).toISOString()).catch(() => { });
+                    try { await supabase.from('sessions').delete().lt('created_at', new Date(Date.now() - 3600000).toISOString()); } catch (e) { }
 
                     const { error } = await supabase.from('sessions').insert([{ code: sessionCode, offer: offer }]);
                     if (error) throw error;
