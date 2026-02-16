@@ -1251,6 +1251,16 @@
                     const offer = await peerConnection.createOffer();
                     await peerConnection.setLocalDescription(offer);
 
+
+                    // Cleanup old sessions (older than 1 hour)
+                    try {
+                        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+                        await supabase.from('sessions').delete().lt('created_at', oneHourAgo);
+                        console.log("Cleaned up old sessions");
+                    } catch (cleanupErr) {
+                        console.warn("Session cleanup failed:", cleanupErr);
+                    }
+
                     const { error } = await supabase.from('sessions').insert([{ code: sessionCode, offer: offer }]);
                     if (error) throw error;
 
