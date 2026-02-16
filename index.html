@@ -1540,9 +1540,12 @@
                         previewHtml = `<div style="width: 40px; height: 40px; background: rgba(255,255,255,0.05); border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-right: 12px;">\ud83d\udcc4</div>`;
                     }
 
-                    const actionHtml = item.type === 'received'
-                        ? `<a href="${item.url}" download="${item.name}" class="file-action-btn">Download</a>`
-                        : `<span style="color:var(--primary); font-size:12px; font-weight:600; margin-left:10px;">Sent \u2713</span>`;
+                    const actionHtml = `
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            ${item.type === 'sent' ? '<span style="color:var(--primary); font-size:12px; font-weight:600; white-space:nowrap;">Sent \u2713</span>' : ''}
+                            <a href="${item.url}" download="${item.name}" class="file-action-btn">Download</a>
+                        </div>
+                    `;
 
                     div.innerHTML = `
                         <div style="display:flex; align-items:center; overflow:hidden; flex:1;">
@@ -1654,11 +1657,8 @@
             // --- Sending File Logic ---
 
             function addSentFileLog(file) {
-                // Ensure we use the correct preview URL if it's an image
-                let fileUrl = '';
-                if (file.type.startsWith('image/')) {
-                    try { fileUrl = URL.createObjectURL(file); } catch (e) { }
-                }
+                const fileUrl = URL.createObjectURL(file);
+                receivedBlobUrls.push(fileUrl); // Track for cleanup
 
                 transferHistory.push({
                     type: 'sent',
