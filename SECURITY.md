@@ -21,3 +21,4 @@ QuickSend relies on P2P WebRTC technology for data transfer. If you discover a v
 
 - **No Data Storage**: QuickSend servers (Supabase) do NOT store file data. They only broker the connection (SDP/ICE signals).
 - **Encryption**: All P2P traffic is encrypted by WebRTC standard (DTLS/SRTP).
+- **Credential Protection**: Sensitive API keys (Metered.ca) are stored in the Supabase Vault and are never exposed to the browser. They are accessed through a secure server-side Edge Function.

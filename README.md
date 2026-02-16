@@ -52,7 +52,50 @@ Don't want to install the extension? Just visit our web app:
 ### Local Setup
 1.  Clone the repo: `git clone https://github.com/milan-m-antony/QuickSend.git`
 2.  Open `index.html` or load the folder as an extension.
-3.  Ensure `config.js` with Supabase credentials is present.
+3.  Configure your own **Supabase** project and **Metered.ca** TURN servers in `config.js`.
+
+---
+
+## 🔒 Backend & Security Setup (Required for Mobile)
+To keep your API keys safe from the public, QuickSend uses a **Supabase Edge Function** as a gatekeeper for TURN credentials.
+
+### 1. Set Supabase Secrets
+In your Supabase Dashboard (or CLI), set your Metered.ca credentials:
+```bash
+supabase secrets set METERED_API_KEY=your_actual_key
+supabase secrets set METERED_DOMAIN=your_metered_domain
+```
+
+### 2. Deploy the Gatekeeper Function
+Create a function named `get-turn-credentials` and use the following logic in your `index.ts`:
+
+```typescript
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS_HEADERS })
+  try {
+    const apiKey = Deno.env.get('METERED_API_KEY')
+    const domain = Deno.env.get('METERED_DOMAIN')
+    const response = await fetch(`https://${domain}/api/v1/turn/credentials?apiKey=${apiKey}`)
+    const credentials = await response.json()
+    return new Response(JSON.stringify(credentials), {
+      headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+      status: 200,
+    })
+  } catch (err) {
+    return new Response(JSON.stringify({ error: err.message }), { status: 500 })
+  }
+})
+```
+Deploy it using: `supabase functions deploy get-turn-credentials`
+
+---
 
 ## 📄 License
 MIT License - Free to use and modify.
