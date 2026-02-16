@@ -1213,13 +1213,14 @@
                     await peerConnection.setLocalDescription(answer);
                     await supabase.from('sessions').update({ answer }).eq('code', targetCode);
 
-                    // AUTO-DELETE Session: Once answer is sent, clear signaling record after delay
+                    // AUTO-DELETE Session: Increase grace period to 30s for mobile users
                     setTimeout(async () => {
                         try {
+                            // Only delete if we are actually connected or if it's been a while
                             await supabase.from('sessions').delete().eq('code', targetCode);
-                            console.log("Session auto-deleted after handshake");
-                        } catch (e) { console.warn("Cleanup failed", e); }
-                    }, 5000); // 5s grace period for ICE candidates
+                            console.log("Signaling record cleaned.");
+                        } catch (e) { }
+                    }, 30000);
 
                     // Listen into session
                     const channel = supabase.channel(`session-${targetCode}`)
@@ -1232,9 +1233,12 @@
                             }
                         })
                         .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'sessions', filter: `code=eq.${targetCode}` }, () => {
-                            updateStatus("Peer Disconnected", 'error');
-                            ui.btnSendFile.classList.add('disabled');
-                            ui.btnPaste.classList.add('disabled');
+                            // Only act if the data channel isn't open yet
+                            if (!dataChannel || dataChannel.readyState !== 'open') {
+                                updateStatus("Peer Disconnected", 'error');
+                                ui.btnSendFile.classList.add('disabled');
+                                ui.btnPaste.classList.add('disabled');
+                            }
                         })
                         .subscribe();
                     activeSubscription = channel;
@@ -1348,7 +1352,6 @@
                     };
 
                     // Listen for Answer
-                    // Listen for Answer
                     const channel = supabase.channel(`session-${sessionCode}`)
                         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sessions', filter: `code=eq.${sessionCode}` }, async (payload) => {
                             const data = payload.new;
@@ -1365,9 +1368,12 @@
                             }
                         })
                         .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'sessions', filter: `code=eq.${sessionCode}` }, () => {
-                            updateStatus("Peer Disconnected", 'error');
-                            ui.btnSendFile.classList.add('disabled');
-                            ui.btnPaste.classList.add('disabled');
+                            // Only act if the data channel isn't open yet
+                            if (!dataChannel || dataChannel.readyState !== 'open') {
+                                updateStatus("Peer Disconnected", 'error');
+                                ui.btnSendFile.classList.add('disabled');
+                                ui.btnPaste.classList.add('disabled');
+                            }
                         })
                         .subscribe();
                     activeSubscription = channel;
@@ -1672,119 +1678,121 @@
                 renderTransferHistory();
             }
 
-            async function startFileTransfer(file) {
-                if (!file || !dataChannel) { console.warn("No file or channel"); return; }
-                if (dataChannel.readyState !== 'open') { console.warn("Channel not open:", dataChannel.readyState); showError("Channel not ready"); return; }
+            function startFileTransfer(file) {
+                return new Promise(async (resolve, reject) => {
+                    if (!file || !dataChannel) { console.warn("No file or channel"); reject("No channel"); return; }
+                    if (dataChannel.readyState !== 'open') { console.warn("Channel not open:", dataChannel.readyState); showError("Channel not ready"); reject("Closed"); return; }
 
-                console.log("Start Transfer:", file.name);
+                    console.log("Start Transfer:", file.name);
 
-                // Setup state
-                txState.active = true;
-                txState.fileName = file.name;
-                txState.size = file.size;
-                txState.bytes = 0;
-                txState.startTime = Date.now();
+                    // Setup state
+                    txState.active = true;
+                    txState.fileName = file.name;
+                    txState.size = file.size;
+                    txState.bytes = 0;
+                    txState.startTime = Date.now();
 
-                ui.filename.textContent = "Sending: " + file.name;
-                ui.filename.classList.remove('hidden');
-                ui.progressContainer.style.display = 'block';
+                    ui.filename.textContent = "Sending: " + file.name;
+                    ui.filename.classList.remove('hidden');
+                    ui.progressContainer.style.display = 'block';
 
-                // 1. Reliable Handshake (Retry Loop)
-                const meta = { type: 'meta', name: file.name, size: file.size, mime: file.type };
-                console.log("Starting Reliable Handshake...");
+                    // 1. Reliable Handshake (Retry Loop)
+                    const meta = { type: 'meta', name: file.name, size: file.size, mime: file.type };
+                    console.log("Starting Reliable Handshake...");
 
-                let ackReceived = false;
-                const ackListener = (event) => {
-                    try {
-                        const msg = JSON.parse(event.data);
-                        if (msg.type === 'ack') ackReceived = true;
-                    } catch (e) { }
-                };
-                dataChannel.addEventListener('message', ackListener);
+                    let ackReceived = false;
+                    const ackListener = (event) => {
+                        try {
+                            const msg = JSON.parse(event.data);
+                            if (msg.type === 'ack') ackReceived = true;
+                        } catch (e) { }
+                    };
+                    dataChannel.addEventListener('message', ackListener);
 
-                // Try 10 times (10 seconds)
-                for (let i = 0; i < 10; i++) {
-                    if (ackReceived) {
-                        console.log("Handshake Success!");
-                        break;
-                    }
-                    console.log(`Sending Meta (Attempt ${i + 1}/10)`, meta);
-                    dataChannel.send(JSON.stringify(meta));
-
-                    // Wait 1s for ACK (blocking)
-                    // Check every 100ms to exit early
-                    for (let w = 0; w < 10; w++) {
-                        if (ackReceived) break;
-                        await new Promise(r => setTimeout(r, 100));
-                    }
-                }
-
-                dataChannel.removeEventListener('message', ackListener);
-
-                if (!ackReceived) {
-                    console.error("Handshake Failed: No ACK from Receiver");
-                    ui.progressContainer.style.display = 'none';
-                    showError("Connection unstable. Please try again.");
-                    return;
-                }
-
-                // 2. Send Chunks Optimized
-                const CHUNK_SIZE = 64 * 1024; // 64KB
-                dataChannel.bufferedAmountLowThreshold = 64 * 1024;
-
-                const fileReader = new FileReader();
-                let lastTxUpdate = 0;
-
-                function readSlice() {
-                    if (txState.bytes >= file.size) return;
-                    const slice = file.slice(txState.bytes, txState.bytes + CHUNK_SIZE);
-                    fileReader.readAsArrayBuffer(slice);
-                }
-
-                fileReader.onload = async (e) => {
-                    const buffer = e.target.result;
-                    if (!buffer) return;
-
-                    try {
-                        if (dataChannel.bufferedAmount > 8 * 1024 * 1024) {
-                            await new Promise(resolve => {
-                                dataChannel.onbufferedamountlow = () => {
-                                    dataChannel.onbufferedamountlow = null;
-                                    resolve();
-                                };
-                            });
+                    // Try 10 times (10 seconds)
+                    for (let i = 0; i < 10; i++) {
+                        if (ackReceived) {
+                            console.log("Handshake Success!");
+                            break;
                         }
+                        console.log(`Sending Meta (Attempt ${i + 1}/10)`, meta);
+                        dataChannel.send(JSON.stringify(meta));
 
-                        dataChannel.send(buffer);
-                        txState.bytes += buffer.byteLength;
-
-                        // Throttle UI
-                        const now = Date.now();
-                        if (now - lastTxUpdate > 100 || txState.bytes >= file.size) {
-                            updateProgress(txState.bytes);
-                            lastTxUpdate = now;
+                        // Wait 1s for ACK (blocking)
+                        for (let w = 0; w < 10; w++) {
+                            if (ackReceived) break;
+                            await new Promise(r => setTimeout(r, 100));
                         }
+                    }
 
-                        if (txState.bytes < file.size) {
-                            readSlice();
-                        } else {
-                            // Done
+                    dataChannel.removeEventListener('message', ackListener);
+
+                    if (!ackReceived) {
+                        console.error("Handshake Failed: No ACK from Receiver");
+                        ui.progressContainer.style.display = 'none';
+                        showError("Connection unstable. Please try again.");
+                        reject("No ACK");
+                        return;
+                    }
+
+                    // 2. Send Chunks Optimized
+                    const CHUNK_SIZE = 64 * 1024; // 64KB
+                    dataChannel.bufferedAmountLowThreshold = 64 * 1024;
+
+                    const fileReader = new FileReader();
+                    let lastTxUpdate = 0;
+
+                    const readSlice = () => {
+                        if (txState.bytes >= file.size) return;
+                        const slice = file.slice(txState.bytes, txState.bytes + CHUNK_SIZE);
+                        fileReader.readAsArrayBuffer(slice);
+                    };
+
+                    fileReader.onload = async (e) => {
+                        const buffer = e.target.result;
+                        if (!buffer) return;
+
+                        try {
+                            if (dataChannel.bufferedAmount > 8 * 1024 * 1024) {
+                                await new Promise(r => {
+                                    dataChannel.onbufferedamountlow = () => {
+                                        dataChannel.onbufferedamountlow = null;
+                                        r();
+                                    };
+                                });
+                            }
+
+                            dataChannel.send(buffer);
+                            txState.bytes += buffer.byteLength;
+
+                            const now = Date.now();
+                            if (now - lastTxUpdate > 100 || txState.bytes >= file.size) {
+                                updateProgress(txState.bytes);
+                                lastTxUpdate = now;
+                            }
+
+                            if (txState.bytes < file.size) {
+                                readSlice();
+                            } else {
+                                txState.active = false;
+                                ui.status.textContent = "Sent Successfully";
+                                ui.status.classList.add('connected');
+                                ui.progressContainer.style.display = 'none';
+                                ui.filename.textContent = "Sent: " + file.name;
+                                showToast(`\ud83d\udce4 Sent: ${file.name}`);
+                                addSentFileLog(file);
+                                resolve(); // DONE
+                            }
+                        } catch (err) {
+                            console.error(err);
                             txState.active = false;
-                            ui.status.textContent = "Sent Successfully";
-                            ui.status.classList.add('connected');
-                            ui.progressContainer.style.display = 'none';
-                            ui.filename.textContent = "Sent: " + file.name;
-                            showToast(`\ud83d\udce4 Sent: ${file.name}`);
-                            addSentFileLog(file); // Add to history
+                            showError("Transfer failed.");
+                            reject(err);
                         }
-                    } catch (err) {
-                        console.error(err);
-                        txState.active = false;
-                        showError("Transfer failed.");
-                    }
-                };
+                    };
 
-                readSlice();
+                    readSlice();
+                });
             }
 
             // Auto-connect if code in URL
