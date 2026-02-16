@@ -864,7 +864,7 @@
                     <li><strong>2. Send:</strong> Tap "Send File" to transfer photos/videos instantly.</li>
                     <li><strong>3. Receive:</strong> Files appear automatically. Click "Download" to save.</li>
                     <li><strong>4. Install Extension:</strong> For the best experience on PC, download the <a
-                            href="https://github.com/milan-m-antony/QuickSend" target="_blank"
+                            href="https://github.com/milan-m-antony/QuickSend.git" target="_blank"
                             style="color:var(--primary);">Chrome Extension</a>.</li>
                 </ul>
                 <p style="margin-top:15px; font-size:12px; opacity:0.7;">v2.1 - Secure P2P - No Cloud Storage</p>
@@ -1363,12 +1363,15 @@
                         if (msg.type === 'meta') {
                             console.log("RX Meta:", msg);
                             // Start Receive
+                            console.log("RX Meta Valid");
                             incomingFileName = msg.name;
                             totalSize = msg.size;
                             incomingMime = msg.mime;
                             receivedBytes = 0;
                             receivedChunks = [];
                             startTime = Date.now();
+
+                            showNotification("Receiving File...", "info"); // Visual Feedback
                             try { AudioEngine.play('receive'); } catch (e) { console.warn("Audio fail", e); }
 
                             if (ui.filename) {
@@ -1448,11 +1451,14 @@
                 `;
                     ui.filesList.appendChild(div);
 
-                    // Force Redraw Hack
-                    ui.filesList.style.display = 'none';
-                    ui.filesList.offsetHeight; // Trigger reflow
-                    ui.filesList.style.display = 'flex';
-                    ui.filesList.scrollTop = ui.filesList.scrollHeight;
+                    // Force Redraw Hack - Heavy Hammer
+                    ui.filesList.style.display = 'flex'; // Ensure flex
+                    ui.filesList.style.visibility = 'visible';
+                    ui.filesList.style.opacity = '1';
+                    setTimeout(() => {
+                        // Scroll to bottom after render
+                        ui.filesList.scrollTop = ui.filesList.scrollHeight;
+                    }, 50);
 
                     // Reset Progress UI
                     ui.progressContainer.style.display = 'none';
@@ -1557,6 +1563,10 @@
                 ui.progressContainer.style.display = 'block';
                 startTime = Date.now();
                 totalSize = file.size; // Global for progress update reusing
+
+                // 0. Warmup Channel
+                try { dataChannel.send("warmup"); } catch (e) { }
+                await new Promise(r => setTimeout(r, 50));
 
                 // 1. Send Meta
                 const meta = { type: 'meta', name: file.name, size: file.size, mime: file.type };
