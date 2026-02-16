@@ -1033,7 +1033,7 @@
     <script src="config.js?v=2.1"></script>
 
     <script>
-        console.log("QuickSend v2.12 Loaded");
+        console.log("QuickSend v2.13 Loaded");
         window.addEventListener('load', function () {
             // --- Logic ---
             const urlParams = new URLSearchParams(window.location.search);
@@ -1306,7 +1306,10 @@
                 // Auto-hide after 8s if not critical
                 setTimeout(() => {
                     if (ui.error.textContent === msg) {
-                        ui.error.style.display = 'none';
+                        // Only hide if we haven't switched to a success state
+                        if (ui.status.textContent === "Error") {
+                            ui.error.style.display = 'none';
+                        }
                     }
                 }, 8000);
             }
@@ -1319,11 +1322,13 @@
             function updateStatus(text, type) {
                 ui.status.textContent = text;
                 ui.status.className = 'status-badge ' + (type || '');
-                // Clear error UI on any status update that isn't an error
-                if (type !== 'error') {
-                    ui.error.style.display = 'none';
-                    ui.error.textContent = '';
-                    ui.status.classList.remove('error');
+                // ONLY clear error UI if we are entering a positive state
+                if (type === 'connected' || type === 'connecting') {
+                    if (text !== "Peer Disconnected" && text !== "Connection Lost") {
+                        ui.error.style.display = 'none';
+                        ui.error.textContent = '';
+                        ui.status.classList.remove('error');
+                    }
                 }
             }
 
@@ -1359,11 +1364,9 @@
                             }
                         })
                         .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'sessions', filter: `code=eq.${targetCode}` }, () => {
-                            setTimeout(() => {
-                                if (!dataChannel || dataChannel.readyState !== 'open') {
-                                    updateStatus("Peer Disconnected", 'error');
-                                }
-                            }, 1000);
+                            // If the session is deleted, it means the peer exited
+                            updateStatus("Peer Exited", 'error');
+                            setTimeout(resetApp, 3000);
                         })
                         .subscribe(async (status) => {
                             if (status === 'SUBSCRIBED') {
@@ -1388,9 +1391,12 @@
                     };
 
                     peerConnection.onconnectionstatechange = () => {
-                        console.log("Conn State:", peerConnection.connectionState);
-                        if (peerConnection.connectionState === 'connected') {
+                        const state = peerConnection.connectionState;
+                        console.log("PC State:", state);
+                        if (state === 'connected') {
                             updateStatus("Connected", "connected");
+                        } else if (state === 'disconnected' || state === 'failed') {
+                            updateStatus("Peer Disconnected", "error");
                         }
                     };
 
@@ -1421,24 +1427,13 @@
             async function saveCandidateToDb(field, candidate, code) {
                 iceBatch.push(candidate);
 
-                if (iceBatchTimer) return;
-
-                iceBatchTimer = setTimeout(async () => {
-                    const toSend = [...iceBatch];
-                    iceBatch = [];
-                    iceBatchTimer = null;
-
-                    try {
-                        const { data } = await supabase.from('sessions').select(field).eq('code', code).maybeSingle();
-                        if (!data) return;
-                        const current = data[field] || [];
-                        const merged = [...current, ...toSend];
-                        // Filter duplicates
-                        const unique = merged.filter((v, i, a) => a.findIndex(t => t.candidate === v.candidate) === i);
-                        await supabase.from('sessions').update({ [field]: unique }).eq('code', code);
-                        console.log(`Batched ${toSend.length} ICE candidates to DB`);
-                    } catch (e) { console.error("ICE DB Error:", e); }
-                }, 250);
+                try {
+                    const { data } = await supabase.from('sessions').select(field).eq('code', code).maybeSingle();
+                    if (!data) return;
+                    const current = data[field] || [];
+                    current.push(candidate);
+                    await supabase.from('sessions').update({ [field]: current }).eq('code', code);
+                } catch (e) { }
             }
 
             // Sender Role (Handled in startSenderSession now)
@@ -1498,6 +1493,16 @@
 
                     peerConnection = new RTCPeerConnection({ iceServers: rtcConfig.iceServers });
 
+                    peerConnection.onconnectionstatechange = () => {
+                        const state = peerConnection.connectionState;
+                        console.log("PC State:", state);
+                        if (state === 'connected') {
+                            updateStatus("Connected", "connected");
+                        } else if (state === 'disconnected' || state === 'failed') {
+                            updateStatus("Peer Disconnected", "error");
+                        }
+                    };
+
                     dataChannel = peerConnection.createDataChannel("sendDataChannel", { reliable: true });
                     setupDataChannel(dataChannel);
 
@@ -1521,11 +1526,8 @@
                             }
                         })
                         .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'sessions', filter: `code=eq.${sessionCode}` }, () => {
-                            setTimeout(() => {
-                                if (!dataChannel || dataChannel.readyState !== 'open') {
-                                    updateStatus("Peer Disconnected", 'error');
-                                }
-                            }, 1000);
+                            updateStatus("Peer Exited", 'error');
+                            setTimeout(resetApp, 3000);
                         })
                         .subscribe();
 
