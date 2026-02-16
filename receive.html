@@ -1395,26 +1395,30 @@
             }
 
             function finishFileReceive() {
-                const blob = new Blob(receivedChunks);
-                const url = URL.createObjectURL(blob);
-                receivedBlobUrls.push(url);
+                try {
+                    if (!totalSize || totalSize === 0) return; // Guard
+                    const blob = new Blob(receivedChunks);
+                    const url = URL.createObjectURL(blob);
+                    receivedBlobUrls.push(url);
 
-                // Media Preview Logic
-                let previewHtml = '';
-                const mime = blob.type;
+                    console.log("File Finished:", incomingFileName);
 
-                if (mime.startsWith('image/')) {
-                    previewHtml = `<img src="${url}" style="width: 40px; height: 40px; border-radius: 8px; object-fit: cover; margin-right: 12px; border: 1px solid rgba(255,255,255,0.1);">`;
-                } else if (mime.startsWith('video/')) {
-                    previewHtml = `<div style="width: 40px; height: 40px; background: rgba(0,0,0,0.3); border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-right: 12px; border: 1px solid rgba(255,255,255,0.1);">▶️</div>`;
-                } else {
-                    previewHtml = `<div style="width: 40px; height: 40px; background: rgba(255,255,255,0.05); border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-right: 12px;">📄</div>`;
-                }
+                    // Media Preview Logic
+                    let previewHtml = '';
+                    const mime = blob.type;
 
-                // Add to list
-                const div = document.createElement('div');
-                div.className = 'file-item';
-                div.innerHTML = `
+                    if (mime.startsWith('image/')) {
+                        previewHtml = `<img src="${url}" style="width: 40px; height: 40px; border-radius: 8px; object-fit: cover; margin-right: 12px; border: 1px solid rgba(255,255,255,0.1);">`;
+                    } else if (mime.startsWith('video/')) {
+                        previewHtml = `<div style="width: 40px; height: 40px; background: rgba(0,0,0,0.3); border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-right: 12px; border: 1px solid rgba(255,255,255,0.1);">▶️</div>`;
+                    } else {
+                        previewHtml = `<div style="width: 40px; height: 40px; background: rgba(255,255,255,0.05); border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-right: 12px;">📄</div>`;
+                    }
+
+                    // Add to list
+                    const div = document.createElement('div');
+                    div.className = 'file-item';
+                    div.innerHTML = `
                     <div style="display:flex; align-items:center; overflow:hidden; flex:1;">
                         ${previewHtml}
                         <div class="file-info" style="min-width:0;">
@@ -1424,12 +1428,13 @@
                     </div>
                     <a href="${url}" download="${incomingFileName}" class="file-action-btn">Download</a>
                 `;
-                ui.filesList.appendChild(div);
+                    ui.filesList.appendChild(div);
 
-                // Reset Progress UI
-                ui.progressContainer.style.display = 'none';
-                ui.filename.textContent = '';
-                AudioEngine.play('success');
+                    // Reset Progress UI
+                    ui.progressContainer.style.display = 'none';
+                    ui.filename.textContent = '';
+                    try { AudioEngine.play('success'); } catch (e) { }
+                } catch (e) { console.error("Finish error", e); }
             }
 
             // PWA Registration
@@ -1533,6 +1538,9 @@
                 const meta = { type: 'meta', name: file.name, size: file.size, mime: file.type };
                 console.log("Sending Meta:", meta);
                 dataChannel.send(JSON.stringify(meta));
+
+                // Small delay to ensure Meta arrives first
+                await new Promise(r => setTimeout(r, 100)); // 100ms delay
 
                 // 2. Send Chunks Optimized
                 const CHUNK_SIZE = 64 * 1024; // 64KB
