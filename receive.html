@@ -858,14 +858,16 @@
         <div id="info-overlay" class="info-overlay hidden">
             <div class="info-content">
                 <button id="info-close" class="close-btn">&times;</button>
-                <h2>How to Use</h2>
+                <h2>Quick Start</h2>
                 <ul>
-                    <li><strong>Connect:</strong> You are linked via the secure code.</li>
-                    <li><strong>Send:</strong> Tap "Send File" to upload photos/videos.</li>
-                    <li><strong>Paste:</strong> Tap "Paste" to share clipboard text.</li>
-                    <li><strong>Save:</strong> Click "Download" on received items.</li>
-                    <li><strong>App:</strong> Add to Home Screen for fullscreen mode.</li>
+                    <li><strong>1. Connect:</strong> Open QuickSend on PC. Scan the QR code with Mobile.</li>
+                    <li><strong>2. Send:</strong> Tap "Send File" to transfer photos/videos instantly.</li>
+                    <li><strong>3. Receive:</strong> Files appear automatically. Click "Download" to save.</li>
+                    <li><strong>4. Install Extension:</strong> For the best experience on PC, download the <a
+                            href="https://github.com/milan-m-antony/QuickSend" target="_blank"
+                            style="color:var(--primary);">Chrome Extension</a>.</li>
                 </ul>
+                <p style="margin-top:15px; font-size:12px; opacity:0.7;">v2.1 - Secure P2P - No Cloud Storage</p>
             </div>
         </div>
     </div>
@@ -1046,6 +1048,7 @@
             let sessionCode = null;
             let activeSubscription = null;
             let heartbeatInterval = null;
+            let transferResolve = null; // For ACK handshake
 
             try {
                 supabase = window.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -1374,6 +1377,14 @@
                             }
                             if (ui.progressContainer) ui.progressContainer.style.display = 'block';
                             updateProgress(0);
+
+                            // Send ACK
+                            console.log("Sending ACK");
+                            if (dataChannel.readyState === 'open') dataChannel.send(JSON.stringify({ type: 'ack' }));
+
+                        } else if (msg.type === 'ack') {
+                            console.log("RX ACK");
+                            if (transferResolve) { transferResolve(); transferResolve = null; }
                         } else if (msg.type === 'chat') {
                             addChatMessage('received', msg.text);
                         } else if (msg.type === 'clipboard') {
@@ -1552,8 +1563,22 @@
                 console.log("Sending Meta:", meta);
                 dataChannel.send(JSON.stringify(meta));
 
-                // Small delay to ensure Meta arrives first and Receiver is ready
-                await new Promise(r => setTimeout(r, 500)); // 500ms delay
+                // Wait for ACK (Handshake)
+                console.log("Waiting for ACK...");
+                try {
+                    await new Promise((resolve, reject) => {
+                        transferResolve = resolve;
+                        setTimeout(() => {
+                            if (transferResolve) { transferResolve = null; reject("ACK Timeout"); }
+                        }, 5000); // 5s timeout
+                    });
+                    console.log("ACK Received. Starting Transfer.");
+                } catch (e) {
+                    console.error(e);
+                    showError("Transfer Failed: Peer missing.");
+                    ui.progressContainer.style.display = 'none';
+                    return;
+                }
 
                 // 2. Send Chunks Optimized
                 const CHUNK_SIZE = 64 * 1024; // 64KB
