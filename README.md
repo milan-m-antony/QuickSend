@@ -11,6 +11,7 @@
 
 ## 📚 Table of Contents
 
+- [Screenshots](#-screenshots)
 - [Features](#-features)
 - [How It Works](#-how-it-works)
 - [Tech Stack](#-tech-stack)
@@ -18,6 +19,14 @@
 - [Contributing](#-contributing)
 - [Privacy](#-privacy--security)
 - [License](#-license)
+
+---
+
+## 📸 Screenshots
+
+| Extension (Sender) | Web App (Receiver) |
+| :---: | :---: |
+| ![Sender](assets/sender.png) | ![Receiver](assets/receiver.png) |
 
 ---
 

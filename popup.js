@@ -3,17 +3,36 @@
 const supabase = window.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // WebRTC Configuration (Public STUN servers)
-const rtcConfig = {
+// WebRTC Configuration
+let rtcConfig = {
     iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:global.stun.twilio.com:3478' }
     ]
 };
 
+// Metered.ca TURN Server Integration
+const METERED_API_KEY = "7901977ec1ad39f11335a956e16f677d8cb7";
+const METERED_DOMAIN = "milanmantony.metered.live";
+
+// Fetch TURN credentials immediately
+(async function fetchTurnCredentials() {
+    try {
+        const response = await fetch(`https://${METERED_DOMAIN}/api/v1/turn/credentials?apiKey=${METERED_API_KEY}`);
+        const iceServers = await response.json();
+        // Merge with defaults (Metered usually returns STUN+TURN, but keeping Google as backup is safe)
+        rtcConfig.iceServers = [...rtcConfig.iceServers, ...iceServers];
+        console.log("Details: TURN servers loaded successfully");
+    } catch (e) {
+        console.warn("Using default STUN servers (TURN fetch failed):", e);
+    }
+})();
+
 // Global State
 let peerConnection = null;
 let dataChannel = null;
 let sessionCode = null;
+let heartbeatInterval = null;
 let currentFile = null;
 let filesQueue = []; // Queue for multi-file sending
 let receivedChunks = [];
@@ -271,6 +290,10 @@ function resetApp() {
     receivedBytes = 0;
     fileSize = 0;
     role = '';
+    if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+        heartbeatInterval = null;
+    }
 
     // Reset UI
     ui.codeInput.value = '';
@@ -429,6 +452,36 @@ async function startSenderSession() {
     listenToSessionChanges(code);
 }
 
+function listenToSessionChanges(code) {
+    supabase.channel(`session-${code}`)
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sessions', filter: `code=eq.${code}` }, async (payload) => {
+            const data = payload.new;
+
+            // Handle answer from receiver
+            if (data.answer && peerConnection.signalingState !== 'stable') {
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+                ui.status.textContent = 'Connected';
+                showView('transfer');
+                AudioEngine.play('connect');
+            }
+
+            // Handle receiver ICE candidates
+            if (data.receiver_ice && data.receiver_ice.length > 0) {
+                data.receiver_ice.forEach(candidate => {
+                    peerConnection.addIceCandidate(new RTCIceCandidate(candidate)).catch(() => { });
+                });
+            }
+        })
+        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'sessions', filter: `code=eq.${code}` }, () => {
+            showNotification('Peer Disconnected', 'error');
+            ui.status.textContent = 'Peer Disconnected';
+            // Disable file selection
+            if (ui.fileInput) ui.fileInput.disabled = true;
+            if (ui.btnPaste) ui.btnPaste.classList.add('disabled');
+        })
+        .subscribe();
+}
+
 // --- Receiver Logic ---
 
 ui.btnConnect.onclick = async () => {
@@ -454,7 +507,8 @@ async function joinSession(code) {
         .from('sessions')
         .select('*')
         .eq('code', code)
-        .single();
+        .maybeSingle()
+
 
     if (error || !data) {
         showNotification('Session not found or expired.', 'error');
@@ -554,39 +608,21 @@ function createPeerConnection() {
                 ui.status.classList.add('connected');
                 showNotification('Connection successful!', 'success');
                 AudioEngine.play('connect');
-
-                if (role === 'sender') {
-                    const codeToCleanup = sessionCode;
-                    setTimeout(() => {
-                        if (codeToCleanup) {
-                            supabase.from('sessions')
-                                .delete()
-                                .eq('code', codeToCleanup)
-                                .then(({ error }) => { if (error) console.error('Post-Connect Cleanup Err:', error); });
-                        }
-                    }, 5000);
-                }
                 break;
 
             case 'disconnected':
             case 'failed':
+            case 'closed':
                 ui.status.textContent = 'Disconnected';
                 ui.status.classList.remove('connected');
                 ui.status.classList.add('disconnected');
 
                 if (role === 'sender' && views.transfer.classList.contains('active')) {
-                    showNotification('Connection lost. Generating new code...', 'error');
-                    startSenderSession();
+                    showNotification('Connection lost.', 'error');
                 } else if (role === 'receiver') {
                     showNotification('Connection lost.', 'error');
-                    resetApp();
                 }
-                break;
-
-            case 'closed':
-                ui.status.textContent = 'Disconnected';
-                ui.status.classList.remove('connected');
-                ui.status.classList.add('disconnected');
+                setTimeout(resetApp, 2000);
                 break;
         }
     };
@@ -604,13 +640,45 @@ function setupDataChannel(channel) {
         ui.btnSendMore.classList.remove('hidden');
         resetProgressUI();
 
+        // Start heartbeat to detect silent drops
+        if (heartbeatInterval) clearInterval(heartbeatInterval);
+        heartbeatInterval = setInterval(() => {
+            if (channel.readyState === 'open') {
+                try {
+                    channel.send(JSON.stringify({ type: 'ping' }));
+                } catch (e) {
+                    clearInterval(heartbeatInterval);
+                }
+            } else {
+                clearInterval(heartbeatInterval);
+            }
+        }, 2000);
+
         if (role === 'sender' && (currentFile || filesQueue.length > 0)) {
             processQueue();
         }
     };
 
+    channel.onclose = () => {
+        console.log('Data Channel Closed');
+        ui.status.textContent = 'Disconnected';
+        ui.status.classList.remove('connected');
+        ui.status.classList.add('disconnected');
+    };
+
     channel.onmessage = handleMessage;
 }
+
+// Faster Exit Signaling
+window.addEventListener('beforeunload', () => {
+    if (dataChannel) dataChannel.close();
+    if (peerConnection) peerConnection.close();
+    if (sessionCode) {
+        // We use a beacon-like approach or a quick fetch if possible
+        // but simple delete is okay as browsers often allow one last request
+        supabase.from('sessions').delete().eq('code', sessionCode);
+    }
+});
 
 // --- Signaling Listener (Realtime) ---
 
@@ -779,6 +847,7 @@ function handleMessage(event) {
     if (typeof data === 'string') {
         // Meta Data or Chat
         const msg = JSON.parse(data);
+        if (msg.type === 'ping') return;
         if (msg.type === 'meta') {
             fileName = msg.name;
             fileSize = msg.size;

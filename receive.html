@@ -40,12 +40,34 @@
             color: var(--text-primary);
             font-family: 'Outfit', sans-serif;
             min-height: 100vh;
+            /* Use dvh for mobile to handle browser toolbars better */
+            min-height: 100dvh;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            overflow: hidden;
+            overflow-x: hidden;
+            overflow-y: auto;
             position: relative;
+            padding: 20px 0;
+        }
+
+        /* Premium Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent);
         }
 
         /* Animated Background Blobs */
@@ -115,7 +137,9 @@
             display: flex;
             flex-direction: column;
             gap: 20px;
-            max-height: 90vh;
+            /* Remove fixed max-height to allow content to grow if needed, 
+               body scroll will handle it */
+            position: relative;
         }
 
         @keyframes slideUp {
@@ -130,13 +154,149 @@
             }
         }
 
-        /* Branding */
-        .logo {
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            width: 100%;
+        }
+
+        .view {
+            width: 100%;
+            transition: all 0.4s ease;
+        }
+
+        .view.hidden {
+            display: none;
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        .card-btn {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+            color: white;
+            outline: none;
+        }
+
+        .card-btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .card-btn:active {
+            transform: scale(0.97) translateY(0);
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--accent);
+        }
+
+        .card-btn .icon {
+            font-size: 32px;
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 12px;
-            margin-bottom: 10px;
+        }
+
+        .card-btn h3 {
+            font-size: 18px;
+            margin-bottom: 4px;
+        }
+
+        .card-btn p {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        /* Sender View Styles */
+        .file-drop-area {
+            border: 2px dashed var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .file-drop-area:active {
+            border-color: var(--accent);
+            background: rgba(0, 242, 255, 0.05);
+        }
+
+        .file-icon {
+            font-size: 48px;
+        }
+
+        .code-box {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--accent);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            margin: 20px 0;
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: 5px;
+            color: var(--accent);
+            text-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        #qrcode {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            display: inline-block;
+            margin-top: 10px;
+        }
+
+        .secondary-btn {
+            background: transparent;
+            border: 1px solid var(--glass-border);
+            color: var(--text-secondary);
+            width: 100%;
+            padding: 12px;
+            border-radius: var(--radius-lg);
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .secondary-btn:active {
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .logo img {
@@ -300,8 +460,13 @@
             box-shadow: 0 4px 15px rgba(0, 242, 255, 0.3);
         }
 
+        .primary-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 242, 255, 0.4);
+        }
+
         .primary-btn:active {
-            transform: scale(0.98);
+            transform: scale(0.98) translateY(0);
         }
 
         .primary-btn.disabled {
@@ -484,10 +649,7 @@
         }
 
         .info-btn {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
             border: 1px solid var(--glass-border);
             color: var(--text-secondary);
             width: 32px;
@@ -500,14 +662,30 @@
             font-family: serif;
             font-style: italic;
             font-weight: bold;
+            transition: all 0.2s;
+            position: relative;
+            /* Not absolute anymore */
+            top: auto;
+            right: auto;
+        }
+
+        .info-btn:active {
+            transform: scale(0.9);
         }
 
         #sound-toggle {
-            right: 60px;
-            /* Space from info button */
+            width: 32px;
+            height: 32px;
+            font-size: 16px;
             font-family: sans-serif;
             font-style: normal;
+            margin-left: 5px;
+            /* Added spacing */
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            opacity: 0.8;
         }
+
 
         .info-overlay {
             position: fixed;
@@ -574,17 +752,75 @@
     </div>
 
     <div class="container">
-        <div class="logo">
-            <img src="icons/icon128.png" alt="Logo">
-            <h1>QuickSend</h1>
-        </div>
-        <button id="sound-toggle" class="info-btn">🔊</button>
-        <button id="info-btn" class="info-btn">i</button>
+        <header>
+            <div class="logo">
+                <img src="icons/icon128.png" alt="Logo">
+                <h1>QuickSend</h1>
+            </div>
+            <div class="header-right">
+                <button id="sound-toggle" class="info-btn">🔊</button>
+                <button id="info-btn" class="info-btn">i</button>
+            </div>
+        </header>
 
         <div id="status-badge" class="status-badge">Connecting...</div>
 
-        <!-- Transfer UI -->
-        <div id="transfer-ui">
+        <!-- Mode Selection -->
+        <div id="mode-selection" class="view">
+            <button id="btn-send-mode" class="card-btn">
+                <div class="icon">📤</div>
+                <div class="text">
+                    <h3>Send File</h3>
+                    <p>Start a new session</p>
+                </div>
+            </button>
+            <button id="btn-receive-mode" class="card-btn">
+                <div class="icon">📥</div>
+                <div class="text">
+                    <h3>Receive File</h3>
+                    <p>Enter code to connect</p>
+                </div>
+            </button>
+        </div>
+
+        <!-- Sender View -->
+        <div id="sender-view" class="view hidden">
+            <div class="step">
+                <label for="file-input-sender" class="file-drop-area" id="drop-area">
+                    <span class="file-icon">📄</span>
+                    <span id="file-name-display">Tap to select a file</span>
+                    <input type="file" id="file-input-sender" multiple hidden>
+                </label>
+            </div>
+            <div id="code-display-area" class="hidden">
+                <p>Share this code:</p>
+                <div class="code-box">
+                    <span id="session-code">...</span>
+                </div>
+                <div id="qrcode-container">
+                    <div id="qrcode"></div>
+                    <p class="qr-hint" style="font-size: 11px; margin-top: 10px; opacity: 0.6;">Scan with another
+                        device to connect</p>
+                    <button id="btn-share-code" class="secondary-btn hidden"
+                        style="margin-top: 15px; border-color: var(--accent); color: var(--accent);">Share Code</button>
+                </div>
+            </div>
+            <button id="btn-cancel-send" class="secondary-btn" style="margin-top:20px;">Back</button>
+        </div>
+
+        <!-- Manual Input View -->
+        <div id="receiver-view" class="view hidden">
+            <div class="input-group">
+                <label>Enter 6-digit Code</label>
+                <input type="text" id="code-input" placeholder="123456" maxlength="6" pattern="\d*" inputmode="numeric"
+                    style="width: 100%; padding: 16px; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); border-radius: 12px; color: white; font-size: 24px; text-align: center; letter-spacing: 4px; margin: 20px 0;">
+            </div>
+            <button id="btn-connect" class="primary-btn">Connect & Receive</button>
+            <button id="btn-cancel-receive" class="secondary-btn" style="margin-top:20px;">Back</button>
+        </div>
+
+        <!-- Transfer UI (Existing) -->
+        <div id="transfer-ui" class="view hidden">
             <div id="current-filename" class="current-filename hidden"></div>
             <div id="progress-container" class="progress-container">
                 <div class="progress-wrapper">
@@ -599,6 +835,7 @@
             <div id="files-list" class="files-list">
                 <!-- Received files will appear here -->
             </div>
+            <button id="btn-exit-session" class="secondary-btn" style="margin-top:20px;">Exit Session</button>
         </div>
 
         <div id="error-ui" class="error-message"></div>
@@ -613,7 +850,8 @@
             <input type="file" id="file-input" hidden>
         </div>
 
-        <p style="font-size: 12px; color: var(--text-secondary); margin-top: 10px;">Keep browser open during transfer.
+        <p style="font-size: 12px; color: var(--text-secondary); margin-top: 10px;">Keep browser open during
+            transfer.
         </p>
 
         <div id="info-overlay" class="info-overlay hidden">
@@ -655,6 +893,7 @@
     <!-- Libs -->
     <script src="libs/audio.js?v=2.0"></script>
     <script src="libs/supabase.js?v=2.0"></script>
+    <script src="libs/qrcode.js?v=2.0"></script>
     <script src="config.js?v=2.0"></script>
 
     <script>
@@ -680,16 +919,54 @@
                 chatMessages: document.getElementById('chat-messages'),
                 chatInput: document.getElementById('chat-input'),
                 btnSendChat: document.getElementById('btn-send-chat'),
-                btnSendChat: document.getElementById('btn-send-chat'),
                 btnCloseChat: document.getElementById('btn-close-chat'),
-                chatUnread: document.getElementById('chat-unread'),
                 chatUnread: document.getElementById('chat-unread'),
                 btnPaste: document.getElementById('btn-paste'),
                 infoBtn: document.getElementById('info-btn'),
                 infoOverlay: document.getElementById('info-overlay'),
                 infoClose: document.getElementById('info-close'),
-                soundToggle: document.getElementById('sound-toggle')
+                soundToggle: document.getElementById('sound-toggle'),
+                // New View Elements
+                btnSendMode: document.getElementById('btn-send-mode'),
+                btnReceiveMode: document.getElementById('btn-receive-mode'),
+                btnCancelSend: document.getElementById('btn-cancel-send'),
+                btnCancelReceive: document.getElementById('btn-cancel-receive'),
+                btnConnect: document.getElementById('btn-connect'),
+                codeInput: document.getElementById('code-input'),
+                sessionCodeText: document.getElementById('session-code'),
+                qrcodeDiv: document.getElementById('qrcode'),
+                fileInputSender: document.getElementById('file-input-sender'),
+                codeDisplayArea: document.getElementById('code-display-area'),
+                btnShareCode: document.getElementById('btn-share-code'),
+                btnExitSession: document.getElementById('btn-exit-session')
             };
+
+            const views = {
+                selection: document.getElementById('mode-selection'),
+                sender: document.getElementById('sender-view'),
+                receiver: document.getElementById('receiver-view'),
+                transfer: document.getElementById('transfer-ui')
+            };
+
+            // WebRTC Config & TURN
+            let rtcConfig = {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:global.stun.twilio.com:3478' }
+                ]
+            };
+            const METERED_API_KEY = "7901977ec1ad39f11335a956e16f677d8cb7";
+            const METERED_DOMAIN = "milanmantony.metered.live";
+            
+            // Promise that resolves when TURN is ready (or failed/timeout)
+            const turnReadyPromise = (async () => {
+                try {
+                    const res = await fetch(`https://${METERED_DOMAIN}/api/v1/turn/credentials?apiKey=${METERED_API_KEY}`);
+                    const servers = await res.json();
+                    rtcConfig.iceServers = [...rtcConfig.iceServers, ...servers];
+                    console.log("TURN Loaded (Mobile)");
+                } catch(e) { console.warn("TURN Fetch Failed", e); }
+            })();
 
             // Init Audio
             AudioEngine.init();
@@ -704,9 +981,52 @@
             ui.infoBtn.onclick = () => ui.infoOverlay.classList.remove('hidden');
             ui.infoClose.onclick = () => ui.infoOverlay.classList.add('hidden');
 
-            if (!code) {
-                showError("No code found. Scan QR again.");
-                return;
+            function showView(viewId) {
+                Object.values(views).forEach(v => v.classList.add('hidden'));
+                views[viewId].classList.remove('hidden');
+            }
+
+            // Mode Selection logic
+            ui.btnSendMode.onclick = () => {
+                AudioEngine.play('nav');
+                showView('sender');
+            };
+
+            ui.btnReceiveMode.onclick = () => {
+                AudioEngine.play('nav');
+                showView('receiver');
+            };
+
+            ui.btnCancelSend.onclick = () => {
+                AudioEngine.play('nav');
+                resetApp();
+            };
+
+            ui.btnCancelReceive.onclick = () => {
+                AudioEngine.play('nav');
+                resetApp();
+            };
+
+            ui.btnExitSession.onclick = () => {
+                AudioEngine.play('nav');
+                resetApp();
+            };
+
+            ui.btnConnect.onclick = () => {
+                const manualCode = ui.codeInput.value.trim();
+                if (manualCode.length === 6) {
+                    AudioEngine.play('nav');
+                    initReceiver(manualCode);
+                } else {
+                    showError("Enter 6-digit code");
+                }
+            };
+
+            if (code) {
+                // Auto-init if code is in URL
+                initReceiver(code);
+            } else {
+                showView('selection');
             }
 
             // Global State
@@ -714,12 +1034,10 @@
             let dataChannel;
             let currentFile = null;
             let receivedChunks = [];
-            let receivedBytes = 0;
-            let totalSize = 0;
-            let incomingFileName = '';
-            let startTime = 0;
             let receivedBlobUrls = [];
             let supabase;
+            let sessionCode = null; // Track globally for cleanup
+            let heartbeatInterval = null;
 
             try {
                 supabase = window.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -795,14 +1113,30 @@
 
             // --- P2P Connection ---
 
-            async function initReceiver() {
+            async function initReceiver(targetCode) {
                 try {
-                    const { data: session, error } = await supabase.from('sessions').select('*').eq('code', code).single();
-                    if (error || !session) { showError("Session expired."); return; }
+                    showView('transfer');
+                    updateStatus("Connecting...", "connecting");
 
-                    peerConnection = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+                    const { data: session, error } = await supabase.from('sessions').select('*').eq('code', targetCode).single();
+                    if (error || !session) {
+                        showError("Session not found or expired.");
+                        setTimeout(resetApp, 2000);
+                        return;
+                    }
 
-                    // Handle Incoming Data Channel (from PC)
+                    await turnReadyPromise;
+                    peerConnection = new RTCPeerConnection({ iceServers: rtcConfig.iceServers });
+                    sessionCode = targetCode;
+
+                    peerConnection.onconnectionstatechange = () => {
+                        const state = peerConnection.connectionState;
+                        if (state === 'failed' || state === 'disconnected' || state === 'closed') {
+                            updateStatus("Connection Lost", "error");
+                        }
+                    };
+
+                    // Handle Incoming Data Channel (from PC or another mobile)
                     peerConnection.ondatachannel = (e) => {
                         dataChannel = e.channel;
                         setupDataChannel(dataChannel);
@@ -810,22 +1144,21 @@
 
                     peerConnection.onicecandidate = async (e) => {
                         if (e.candidate) {
-                            // RPC or Array update logic (using simple array push for now as single candidate updates are fine for this scale)
-                            const { data } = await supabase.from('sessions').select('receiver_ice').eq('code', code).maybeSingle();
+                            const { data } = await supabase.from('sessions').select('receiver_ice').eq('code', targetCode).maybeSingle();
                             const current = data?.receiver_ice || [];
                             current.push(e.candidate);
-                            await supabase.from('sessions').update({ receiver_ice: current }).eq('code', code);
+                            await supabase.from('sessions').update({ receiver_ice: current }).eq('code', targetCode);
                         }
                     };
 
                     await peerConnection.setRemoteDescription(new RTCSessionDescription(session.offer));
                     const answer = await peerConnection.createAnswer();
                     await peerConnection.setLocalDescription(answer);
-                    await supabase.from('sessions').update({ answer }).eq('code', code);
+                    await supabase.from('sessions').update({ answer }).eq('code', targetCode);
 
                     // Listen into session
-                    supabase.channel(`session-${code}`)
-                        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sessions', filter: `code=eq.${code}` }, payload => {
+                    supabase.channel(`session-${targetCode}`)
+                        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sessions', filter: `code=eq.${targetCode}` }, payload => {
                             const data = payload.new;
                             if (data.sender_ice) {
                                 data.sender_ice.forEach(c => {
@@ -833,9 +1166,10 @@
                                 });
                             }
                         })
-                        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'sessions', filter: `code=eq.${code}` }, () => {
+                        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'sessions', filter: `code=eq.${targetCode}` }, () => {
                             updateStatus("Peer Disconnected", 'error');
                             ui.btnSendFile.classList.add('disabled');
+                            ui.btnPaste.classList.add('disabled');
                         })
                         .subscribe();
 
@@ -845,21 +1179,165 @@
                 }
             }
 
+            // --- Sender Role ---
+            ui.fileInputSender.onchange = async (e) => {
+                const files = e.target.files;
+                if (!files || files.length === 0) return;
+
+                AudioEngine.play('nav');
+                await startSenderSession();
+
+                // Once connected or at least session started, we might want to wait.
+                // For now, it works like the extension: Start Session -> Show Code -> Wait for Peer
+            };
+
+            async function startSenderSession() {
+                try {
+                    sessionCode = Math.floor(100000 + Math.random() * 900000).toString();
+                    ui.sessionCodeText.textContent = sessionCode;
+                    ui.codeDisplayArea.classList.remove('hidden');
+
+                    // Share Button Support
+                    if (navigator.share) {
+                        ui.btnShareCode.classList.remove('hidden');
+                        ui.btnShareCode.onclick = () => {
+                            navigator.share({
+                                title: 'QuickSend Code',
+                                text: `Join my QuickSend session: ${sessionCode}`,
+                                url: window.location.origin + window.location.pathname + '?code=' + sessionCode
+                            }).catch(() => { });
+                        };
+                    }
+
+                    // Show QR
+                    ui.qrcodeDiv.innerHTML = '';
+                    new QRCode(ui.qrcodeDiv, {
+                        text: window.location.origin + window.location.pathname + "?code=" + sessionCode,
+                        width: 128,
+                        height: 128,
+                        colorDark: "#0c0e14",
+                        colorLight: "#ffffff",
+                        correctLevel: QRCode.CorrectLevel.H
+                    });
+
+                    updateStatus("Waiting for peer...", "connecting");
+
+                    await turnReadyPromise;
+                    peerConnection = new RTCPeerConnection({ iceServers: rtcConfig.iceServers });
+
+                    peerConnection.onconnectionstatechange = () => {
+                        const state = peerConnection.connectionState;
+                        if (state === 'failed' || state === 'disconnected' || state === 'closed') {
+                            updateStatus("Connection Lost", "error");
+                        }
+                    };
+
+                    dataChannel = peerConnection.createDataChannel("sendDataChannel", { reliable: true });
+                    setupDataChannel(dataChannel);
+
+                    const offer = await peerConnection.createOffer();
+                    await peerConnection.setLocalDescription(offer);
+
+                    const { error } = await supabase.from('sessions').insert([{ code: sessionCode, offer: offer }]);
+                    if (error) throw error;
+
+                    peerConnection.onicecandidate = async (e) => {
+                        if (e.candidate) {
+                            const { data } = await supabase.from('sessions').select('sender_ice').eq('code', sessionCode).maybeSingle();
+                            const current = data?.sender_ice || [];
+                            current.push(e.candidate);
+                            await supabase.from('sessions').update({ sender_ice: current }).eq('code', sessionCode);
+                        }
+                    };
+
+                    // Listen for Answer
+                    supabase.channel(`session-${sessionCode}`)
+                        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sessions', filter: `code=eq.${sessionCode}` }, async (payload) => {
+                            const data = payload.new;
+                            if (data.answer && peerConnection.signalingState !== 'stable') {
+                                await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+                                showView('transfer');
+                            }
+                            if (data.receiver_ice) {
+                                data.receiver_ice.forEach(c => {
+                                    peerConnection.addIceCandidate(new RTCIceCandidate(c)).catch(() => { });
+                                });
+                            }
+                        })
+                        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'sessions', filter: `code=eq.${sessionCode}` }, () => {
+                            updateStatus("Peer Disconnected", 'error');
+                            ui.btnSendFile.classList.add('disabled');
+                            ui.btnPaste.classList.add('disabled');
+                        })
+                        .subscribe();
+
+                } catch (err) {
+                    console.error(err);
+                    showError("Failed to start session.");
+                }
+            }
+
+            function resetApp() {
+                if (peerConnection) {
+                    peerConnection.close();
+                    peerConnection = null;
+                }
+                if (heartbeatInterval) {
+                    clearInterval(heartbeatInterval);
+                    heartbeatInterval = null;
+                }
+                showView('selection');
+                ui.codeDisplayArea.classList.add('hidden');
+                ui.status.textContent = "Connecting...";
+                ui.status.className = 'status-badge';
+                ui.error.style.display = 'none';
+                ui.filesList.innerHTML = '';
+                ui.filename.classList.add('hidden');
+                ui.progressContainer.style.display = 'none';
+                ui.btnSendFile.classList.add('disabled');
+                ui.btnPaste.classList.add('disabled');
+            }
+
             function setupDataChannel(channel) {
+                channel.binaryType = 'arraybuffer';
                 channel.onopen = () => {
                     AudioEngine.play('connect');
                     updateStatus("Connected", "connected");
                     ui.btnSendFile.classList.remove('disabled');
                     ui.btnPaste.classList.remove('disabled');
                     ui.btnChatToggle.classList.remove('hidden');
+
+                    // Heartbeat to catch silent drops
+                    if (heartbeatInterval) clearInterval(heartbeatInterval);
+                    heartbeatInterval = setInterval(() => {
+                        if (channel.readyState === 'open') {
+                            try { channel.send(JSON.stringify({ type: 'ping' })); }
+                            catch (e) { clearInterval(heartbeatInterval); }
+                        } else { clearInterval(heartbeatInterval); }
+                    }, 2000);
+                };
+                channel.onclose = () => {
+                    updateStatus("Disconnected", "error");
+                    ui.btnSendFile.classList.add('disabled');
+                    ui.btnPaste.classList.add('disabled');
+                    setTimeout(resetApp, 1500); // Back to menu after short delay
                 };
                 channel.onmessage = handleMessage;
             }
+
+            window.addEventListener('beforeunload', () => {
+                if (dataChannel) dataChannel.close();
+                if (peerConnection) peerConnection.close();
+                if (sessionCode) {
+                    supabase.from('sessions').delete().eq('code', sessionCode);
+                }
+            });
 
             function handleMessage(event) {
                 const data = event.data;
                 if (typeof data === 'string') {
                     const msg = JSON.parse(data);
+                    if (msg.type === 'ping') return; // Ignore heartbeats
                     if (msg.type === 'meta') {
                         // Start Receive
                         incomingFileName = msg.name;
@@ -1056,7 +1534,13 @@
                 readSlice();
             }
 
-            initReceiver();
+            // Auto-connect if code in URL
+            if (code && code.length === 6) {
+                ui.codeInput.value = code;
+                initReceiver(code);
+            }
+
+
         });
     </script>
 </body>
